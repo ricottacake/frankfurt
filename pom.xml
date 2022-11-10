@@ -71,7 +71,7 @@
 				<configuration>
 					<archive>
 						<manifest>
-							<mainClass>com.aceliq.frankfurt.Application</mainClass>
+							<mainClass>com.aceliq.frankfurt.main.Application</mainClass>
 						</manifest>
 					</archive>
 				</configuration>
