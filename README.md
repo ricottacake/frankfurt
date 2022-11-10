@@ -1,4 +1,4 @@
-# Wolfsburg App
+# Frankfurt App
 Hey! <br> This bot will help you learn foreign words. For example, you have a habit of learning words every day by reading various newspapers or magazines such as the New York Times. Add new words to this bot, and then, during the day, we will send you a new word every hour along with the translation, and you will try to memorize them. At the end of the day you will have the opportunity to take a short test to check how well you remember the words.
 
 ## Here are the main bot commands you will use
