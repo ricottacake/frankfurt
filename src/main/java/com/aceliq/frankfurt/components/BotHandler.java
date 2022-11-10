@@ -182,7 +182,6 @@ public class BotHandler extends TelegramLongPollingBot {
     long telegramId = message.getFrom().getId();
 
     if (message.getText().equals("/start")) {
-      System.out.println("sdfsd");
       createUser(telegramId);
       sendMessage(A1, telegramId);
       userState.put(telegramId, UserState.REGTIMEZONE);
