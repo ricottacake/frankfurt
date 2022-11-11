@@ -5,6 +5,9 @@ import java.util.Calendar;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Locale;
+import java.util.Optional;
+import java.util.ResourceBundle;
 import java.util.TimeZone;
 import java.util.concurrent.ScheduledFuture;
 import java.util.regex.Pattern;
@@ -14,40 +17,36 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationContext;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
 import org.springframework.stereotype.Component;
+
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
+
 import com.aceliq.frankfurt.database.UsersRepository;
 import com.aceliq.frankfurt.database.WordRepository;
 import com.aceliq.frankfurt.models.User;
 import com.aceliq.frankfurt.models.UserState;
 import com.aceliq.frankfurt.models.Word;
+import com.aceliq.frankfurt.util.General;
 
 @Component
 public class BotHandler extends TelegramLongPollingBot {
+  
+  private Locale locale;
+  private ResourceBundle resourceBundle;
 
   private HashMap<Long, UserState> userState = new HashMap<Long, UserState>();
   private HashMap<Long, List<ScheduledFuture<?>>> futureTask =
       new HashMap<Long, List<ScheduledFuture<?>>>();
-
-  final private String A1 =
-      "Hello! This bot will help you learn foreign words. For example, you have a habit of learning words every day by reading various newspapers or magazines such as the New York Times. Add new words to this bot, and then, during the day, we will send you a new word every hour along with the translation, and you will try to memorize them. At the end of the day you will have the opportunity to take a short test to check how well you remember the words.";
-  final private String W1 =
-      "Perfect! Enter Please your words in format word - translate. When in finish just press button Finish.";
-  final private String W2 = "You not added words yet.";
-  final private String W3 = "Sorry, too late. See you tomorrow!";
-  final private String W4 = "Lets Start!";
-  final private String W5 = "Finish!!";
-  final private String W6 = "Right!";
-  final private String W7 = "Mistake";
-  final private String W8 = "Perfect! We add all your words, Good Luck in learn!";
-  final private String W9 = "Thats all. Good Work!";
-  final private String W10 = "Right answer is ";
+  private String timezonePattern = "^[-]?\\d{1,2}";
   
   @Value("${TELEGRAM_BOT_KEY}")
   private String botToken;
+  
+  @Value("${TELEGRAM_BOT_USERNAME}")
+  private String botUsername;
 
   @Autowired
   private LearnWords learnWords;
@@ -63,10 +62,21 @@ public class BotHandler extends TelegramLongPollingBot {
 
   @Autowired
   private ApplicationContext context;
+  
+  public ResourceBundle getResourceBundleForUser(long telegramId) {
+    
+    Optional<User> user = usersRepository.findById(telegramId);
+    String lang = user.get().getLang();
+    
+    locale = new Locale(lang.split("_")[0], lang.split("_")[1]);
+    resourceBundle = ResourceBundle.getBundle("bundle", locale);
+    
+    return resourceBundle;
+  }
 
   @Override
   public void onUpdateReceived(Update update) {
-
+    
     try {
       
       if (update.hasMessage()) {
@@ -76,7 +86,7 @@ public class BotHandler extends TelegramLongPollingBot {
           return;
         }
 
-        if (message.hasText() || message.hasLocation()) {
+        if (message.hasText()) {
           handleIncomingMessage(message);
         }
       }
@@ -85,17 +95,7 @@ public class BotHandler extends TelegramLongPollingBot {
     }
   }
 
-  public int getRandomNumber(int min, int max) {
-    return (int) ((Math.random() * (max - min)) + min);
-  }
-  
-  public long getUnixTimeInSeconds() {
-    TimeZone timeZone = TimeZone.getTimeZone("GMT");
-    Calendar startDay = Calendar.getInstance(timeZone);
-    return startDay.getTimeInMillis() / 1000L;
-  }
-
-  private void setLearnTable(long telegramId) {
+  public void setLearnTable(long telegramId) {
 
     threadPoolTaskScheduler.initialize();
 
@@ -106,7 +106,7 @@ public class BotHandler extends TelegramLongPollingBot {
     int timeDifferent = 21 - date.get(Calendar.HOUR_OF_DAY);
 
     if (timeDifferent < 2) {
-      sendMessage(W3, telegramId);
+      sendMessage(1, telegramId, "sorry", "");
       return;
     }
 
@@ -115,26 +115,26 @@ public class BotHandler extends TelegramLongPollingBot {
     for (int i = 1; i < timeDifferent; i++) {
       Word word = learnWords.getTodaysRandomWord(telegramId);
 
-      date.set(Calendar.MINUTE, getRandomNumber(1, 57));
+      date.set(Calendar.MINUTE, General.getRandomNumber(1, 57));
       date.set(Calendar.HOUR_OF_DAY, date.get(Calendar.HOUR_OF_DAY) + 1);
 
       Runnable task = new Runnable() {
         @Override
         public void run() {
           String message = word.getForeignWord() + " - " + word.getNativeWord();
-          sendMessage(message, telegramId);
+          sendMessage(2, telegramId, "", message);
         }
       };
       futureTask.get(telegramId).add(threadPoolTaskScheduler.schedule(task, date.toInstant()));
     }
-    sendMessage(W8, telegramId);
+    sendMessage(1, telegramId, "we_add_all_words", "");
   }
 
-  private void handleIncomingMessage(Message message) throws TelegramApiException {
+  public void handleIncomingMessage(Message message) throws TelegramApiException {
 
     long telegramId = message.getFrom().getId();
     String messageText = message.getText();
-    String timezonePattern = "^[-]?\\d{1,2}";
+    resourceBundle = getResourceBundleForUser(telegramId);
 
     switch (userState.get(telegramId)) {
       case MENU:
@@ -147,7 +147,7 @@ public class BotHandler extends TelegramLongPollingBot {
         word.setForeignWord(foreignWord);
         word.setNativeWord(nativeWord);
         word.setTelegramId(telegramId);
-        word.setAddingTime(getUnixTimeInSeconds());
+        word.setAddingTime(General.getUnixTimeInSeconds());
         wordRepository.save(word);
         break;
       case REGTIMEZONE:
@@ -160,19 +160,19 @@ public class BotHandler extends TelegramLongPollingBot {
         break;
       case LEARNWORDS:
         if (learnWords.checkWord(messageText, telegramId))
-          sendMessage(W6, telegramId);
+          sendMessage(1, telegramId, "right", "");
         else {
-          sendMessage(W7, telegramId);
-          String s = W10 + learnWords.getWord(telegramId).getForeignWord();
-          sendMessage(s, telegramId);
+          sendMessage(1, telegramId, "mistake", "");
+          sendMessage(3, telegramId, "right_answer_is", learnWords.getWord(telegramId).getForeignWord());
+          
         }
         learnWords.removeFirst(telegramId);
         if (learnWords.getCountWords(telegramId) == 0) {
-          sendMessage(W9, telegramId);
+          sendMessage(1, telegramId, "thats_all_good_work", "");
           return;
         }
         String nextWord = learnWords.getWord(telegramId).getNativeWord();
-        sendMessage(nextWord, telegramId);
+        sendMessage(2, telegramId, "", nextWord);
         break;
     }
   }
@@ -183,13 +183,13 @@ public class BotHandler extends TelegramLongPollingBot {
 
     if (message.getText().equals("/start")) {
       createUser(telegramId);
-      sendMessage(A1, telegramId);
+      sendMessage(1, telegramId, "start", "");
       userState.put(telegramId, UserState.REGTIMEZONE);
       return true;
     }
 
     if (message.getText().equals("/add_words")) {
-      sendMessage(W1, message.getFrom().getId());
+      sendMessage(1, telegramId, "enter_words", "");
       userState.put(telegramId, UserState.ADD_WORDS);
       return true;
     }
@@ -197,9 +197,9 @@ public class BotHandler extends TelegramLongPollingBot {
     if (message.getText().equals("/todays_vocabulary")) {
       LinkedList<Word> todayWords = learnWords.getTodaysWords(message.getFrom().getId());
       if (todayWords.size() != 0)
-        sendMessage(convertListOfWordsToString(todayWords), telegramId);
+        sendMessage(2, telegramId, "", General.convertListOfWordsToString(todayWords));
       else
-        sendMessage(W2, telegramId);
+        sendMessage(1, telegramId, "you_not_added", "");
       return true;
     }
 
@@ -207,8 +207,8 @@ public class BotHandler extends TelegramLongPollingBot {
       userState.put(telegramId, UserState.LEARNWORDS);
       learnWords.startLearn(telegramId);
       String nativeWord = learnWords.getWord(telegramId).getNativeWord();
-      sendMessage(W4, telegramId);
-      sendMessage(nativeWord, telegramId);
+      sendMessage(1, telegramId, "lets_start", "");
+      sendMessage(2, telegramId, "", nativeWord);
       learnWords.startLearn(telegramId);
       return true;
     }
@@ -220,26 +220,27 @@ public class BotHandler extends TelegramLongPollingBot {
     return false;
   }
 
-  public String convertListOfWordsToString(List<Word> listOfWords) {
-    String result = "";
-    for (int i = 0; i < listOfWords.size(); i++)
-      result = result + listOfWords.get(i).getForeignWord() + " - "
-          + listOfWords.get(i).getNativeWord() + "\n";
-    return result;
-  }
-
   public void createUser(long telegramId) {
     User user = context.getBean(User.class);
     user.setTelegramId(telegramId);
-    user.setJoinDate(getUnixTimeInSeconds());
+    user.setJoinDate(General.getUnixTimeInSeconds());
     user.setTimezone("GMT+3:00");
     usersRepository.save(user);
   }
 
-  public void sendMessage(String text, long telegramId) {
+  public void sendMessage(int type, long telegramId, String text, String additionalText) {
     SendMessage sendMessage = new SendMessage();
     sendMessage.setChatId(telegramId);
-    sendMessage.setText(text);
+    
+    if(type == 1) {
+      resourceBundle = getResourceBundleForUser(telegramId);
+      sendMessage.setText(resourceBundle.getString(text));
+    } else if(type == 2) {
+      sendMessage.setText(text);
+    } else if(type == 3) {
+      String s = resourceBundle.getString(text) + additionalText;
+      sendMessage.setText(s);
+    }
     try {
       execute(sendMessage);
     } catch (TelegramApiException e) {
@@ -249,7 +250,7 @@ public class BotHandler extends TelegramLongPollingBot {
 
   @Override
   public String getBotUsername() {
-    return "fortalkBot";
+    return botUsername;
   }
 
   @Override
