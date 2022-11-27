@@ -42,36 +42,21 @@ public class LearnWords {
   }
 
   public void startLearn(long telegramId) {
-    map.put(telegramId, getTodaysWords(telegramId));
+    map.put(telegramId, getVocabulary(telegramId));
   }
 
   public Word getWord(long telegramId) {
     return map.get(telegramId).getFirst();
   }
 
-  public LinkedList<Word> getTodaysWords(long telegramId) {
-    String userTimeZone = usersRepository.findById(telegramId).get().getTimezone();
-    TimeZone timeZone = TimeZone.getTimeZone(userTimeZone);
-
-    Calendar startDay = Calendar.getInstance(timeZone);
-    startDay.set(Calendar.HOUR_OF_DAY, 0);
-    startDay.set(Calendar.MINUTE, 0);
-    startDay.set(Calendar.SECOND, 0);
-
-    Calendar endDay = Calendar.getInstance(timeZone);
-    endDay.set(Calendar.HOUR_OF_DAY, 23);
-    endDay.set(Calendar.MINUTE, 59);
-    endDay.set(Calendar.SECOND, 59);
-
-    long start = startDay.getTimeInMillis() / 1000L;
-    long end = endDay.getTimeInMillis() / 1000L;
+  public LinkedList<Word> getVocabulary(long telegramId) {
     
     return new LinkedList<Word>(
-        wordRepository.findByTelegramIdAndAddingTimeBetween(telegramId, start, end));
+        wordRepository.findByTelegramId(telegramId));
   }
 
-  public Word getTodaysRandomWord(long telegramId) {
-    LinkedList<Word> words = getTodaysWords(telegramId);
+  public Word getRandomWord(long telegramId) {
+    LinkedList<Word> words = getVocabulary(telegramId);
     Word word = words.get(getRandomNumber(0, words.size()));
     return word;
   }

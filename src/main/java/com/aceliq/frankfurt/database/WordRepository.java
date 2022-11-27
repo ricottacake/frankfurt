@@ -10,4 +10,5 @@ import com.aceliq.frankfurt.models.Word;
 public interface WordRepository extends CrudRepository<Word, Integer> {
   List<Word> findByTelegramIdAndAddingTimeBetween(long telegramId, long startAddingTime,
       long endAddingTime);
+  List<Word> findByTelegramId(long telegramId);
 }

@@ -14,6 +14,7 @@ import java.util.concurrent.ScheduledFuture;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationContext;
+import org.springframework.data.util.Pair;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
 import org.springframework.stereotype.Component;
 
@@ -35,8 +36,9 @@ public class BotHandler extends TelegramLongPollingBot {
   
   private Locale locale;
   private ResourceBundle resourceBundle;
-
+ 
   private HashMap<Long, UserState> userState = new HashMap<Long, UserState>();
+  private HashMap<Long, Pair<String, String>> wordBuffer = new HashMap<Long, Pair<String, String>>();
   private HashMap<Long, List<ScheduledFuture<?>>> futureTask =
       new HashMap<Long, List<ScheduledFuture<?>>>();
   
@@ -87,24 +89,23 @@ public class BotHandler extends TelegramLongPollingBot {
   public void setLearnTable(long telegramId) {
 
     threadPoolTaskScheduler.initialize();
-
-    String userTimeZone = usersRepository.findById(telegramId).get().getTimezone();
-    TimeZone timeZone = TimeZone.getTimeZone(userTimeZone);
-    Calendar date = Calendar.getInstance(timeZone);
+    
+    Calendar date = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
 
     futureTask.put(telegramId, new ArrayList<ScheduledFuture<?>>());
 
     for (int i = 1; i < 12; i++) {
-      Word word = learnWords.getTodaysRandomWord(telegramId);
+      Word word = learnWords.getRandomWord(telegramId);
 
-      date.set(Calendar.MINUTE, General.getRandomNumber(1, 57));
-      date.set(Calendar.HOUR_OF_DAY, date.get(Calendar.HOUR_OF_DAY) + 1);
-
+      date.set(Calendar.SECOND, General.getRandomNumber(1, 57));
+      //date.set(Calendar.MINUTE, General.getRandomNumber(1, 57));
+      //date.set(Calendar.HOUR_OF_DAY, date.get(Calendar.HOUR_OF_DAY) + 1);
+ 
       Runnable task = new Runnable() {
         @Override
         public void run() {
           String message = word.getForeignWord() + " - " + word.getNativeWord();
-          sendMessage(2, telegramId, "", message);
+          sendMessage(2, telegramId, message, "");
         }
       };
       futureTask.get(telegramId).add(threadPoolTaskScheduler.schedule(task, date.toInstant()));
@@ -119,19 +120,16 @@ public class BotHandler extends TelegramLongPollingBot {
     resourceBundle = getResourceBundleForUser(telegramId);
 
     switch (userState.getOrDefault(telegramId, UserState.NONE)) {
-      case MENU:
+      case FOREIGN_WORD:
+        wordBuffer.put(telegramId, Pair.of(messageText, ""));
+        userState.put(telegramId, UserState.NATIVE_WORD);
+        sendMessage(1, telegramId, "enter_native_word", "");
         break;
-      case ADD_WORDS:
-        String foreignWord = messageText.split("-")[0].replaceAll("\\s+", "");
-        String nativeWord = messageText.split("-")[1].replaceAll("\\s+", "");
-        Word word = context.getBean(Word.class);
-        word.setForeignWord(foreignWord);
-        word.setNativeWord(nativeWord);
-        word.setTelegramId(telegramId);
-        word.setAddingTime(General.getUnixTimeInSeconds());
-        wordRepository.save(word);
-        break;
-      case REGTIMEZONE:
+      case NATIVE_WORD:
+        wordBuffer.put(telegramId, Pair.of(wordBuffer.get(telegramId).getFirst(), messageText));
+        userState.put(telegramId, UserState.FOREIGN_WORD);
+        sendMessage(1, telegramId, "added", "");
+        sendMessage(1, telegramId, "enter_foreign_word", "");
         break;
       case LEARNWORDS:
         if (learnWords.checkWord(messageText, telegramId))
@@ -160,16 +158,17 @@ public class BotHandler extends TelegramLongPollingBot {
         createUser(telegramId);
         sendMessage(1, telegramId, "start", "");
         break;
-      case "/add_words":
-        userState.put(telegramId, UserState.ADD_WORDS);
+      case "/add":
+        userState.put(telegramId, UserState.FOREIGN_WORD);
         sendMessage(1, telegramId, "enter_words", "");
+        sendMessage(1, telegramId, "enter_foreign_word", "");
         break;
-      case "/todays_vocabulary":
-        LinkedList<Word> todayWords = learnWords.getTodaysWords(message.getFrom().getId());
+      case "/vocabulary":
+        LinkedList<Word> todayWords = learnWords.getVocabulary(message.getFrom().getId());
         if (todayWords.size() != 0)
           sendMessage(2, telegramId, "", General.convertListOfWordsToString(todayWords));
         else
-          sendMessage(1, telegramId, "you_not_added", "");
+          sendMessage(1, telegramId, "empty", "");
         break;
       case "/learn_todays_words":
         userState.put(telegramId, UserState.LEARNWORDS);
@@ -183,6 +182,15 @@ public class BotHandler extends TelegramLongPollingBot {
         setLearnTable(telegramId); 
         break;
     }
+  }
+  
+  public void addWordToVocabulary(long telegramId) {
+    Word word = context.getBean(Word.class);
+    word.setForeignWord(wordBuffer.get(telegramId).getFirst());
+    word.setNativeWord(wordBuffer.get(telegramId).getSecond());
+    word.setTelegramId(telegramId);
+    word.setAddingTime(General.getUnixTimeInSeconds());
+    wordRepository.save(word);
   }
 
   public boolean isCommand(Message message) {
@@ -205,7 +213,7 @@ public class BotHandler extends TelegramLongPollingBot {
       resourceBundle = getResourceBundleForUser(telegramId);
       sendMessage.setText(resourceBundle.getString(text));
     } else if(type == 2) {
-      sendMessage.setText(text);
+      sendMessage.setText(additionalText);
     } else if(type == 3) {
       String s = resourceBundle.getString(text) + additionalText;
       sendMessage.setText(s);
