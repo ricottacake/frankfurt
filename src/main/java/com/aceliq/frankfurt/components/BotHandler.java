@@ -1,228 +1,250 @@
 package com.aceliq.frankfurt.components;
 
-import java.util.ArrayList;
-import java.util.Calendar;
+import java.util.Arrays;
 import java.util.HashMap;
-import java.util.LinkedList;
 import java.util.List;
-import java.util.Locale;
-import java.util.Optional;
-import java.util.ResourceBundle;
-import java.util.TimeZone;
-import java.util.concurrent.ScheduledFuture;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationContext;
-import org.springframework.data.util.Pair;
-import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
 import org.springframework.stereotype.Component;
-
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
-import com.aceliq.frankfurt.database.UsersRepository;
-import com.aceliq.frankfurt.database.WordRepository;
+import com.aceliq.frankfurt.database.UserRepository;
+import com.aceliq.frankfurt.database.CardRepository;
+import com.aceliq.frankfurt.database.DeckRepository;
 import com.aceliq.frankfurt.models.User;
 import com.aceliq.frankfurt.models.UserState;
-import com.aceliq.frankfurt.models.Word;
+import com.aceliq.frankfurt.models.Card;
+import com.aceliq.frankfurt.models.Deck;
 import com.aceliq.frankfurt.util.General;
 
 @Component
 public class BotHandler extends TelegramLongPollingBot {
-  
-  private Locale locale;
-  private ResourceBundle resourceBundle;
- 
+
+  private HashMap<Long, Deck> userDeckState = new HashMap<Long, Deck>();
   private HashMap<Long, UserState> userState = new HashMap<Long, UserState>();
-  private HashMap<Long, Pair<String, String>> wordBuffer = new HashMap<Long, Pair<String, String>>();
-  private HashMap<Long, List<ScheduledFuture<?>>> futureTask =
-      new HashMap<Long, List<ScheduledFuture<?>>>();
-  
+  private HashMap<Long, Card> cardBuffer = new HashMap<Long, Card>();
+
   @Value("${TELEGRAM_BOT_KEY}")
   private String botToken;
-  
+
   @Value("${TELEGRAM_BOT_USERNAME}")
   private String botUsername;
 
-  @Autowired
-  private LearnWords learnWords;
-
-  @Autowired
-  private WordRepository wordRepository;
-
-  @Autowired
-  private UsersRepository usersRepository;
-
-  @Autowired
-  private ThreadPoolTaskScheduler threadPoolTaskScheduler;
-
-  @Autowired
   private ApplicationContext context;
-  
-  public ResourceBundle getResourceBundleForUser(long telegramId) {
-    
-    Optional<User> user = usersRepository.findById(telegramId);
-    String lang = user.get().getLang();
-    
-    locale = new Locale(lang.split("_")[0], lang.split("_")[1]);
-    resourceBundle = ResourceBundle.getBundle("bundle", locale);
-    
-    return resourceBundle;
+  private CardRepository cardRepository;
+  private UserRepository userRepository;
+  private DeckRepository deckRepository;
+
+  public BotHandler(ApplicationContext context, CardRepository wordRepository,
+      UserRepository userRepository, DeckRepository deckRepository) {
+    this.context = context;
+    this.cardRepository = wordRepository;
+    this.userRepository = userRepository;
+    this.deckRepository = deckRepository;
   }
 
   @Override
   public void onUpdateReceived(Update update) {
     if (update.hasMessage()) {
       Message message = update.getMessage();
-      if (isCommand(message)) {
-        handleIncomingCommand(message);
-      } else {
+      try {
         handleIncomingMessage(message);
+      } catch (TelegramApiException e) {
+        e.printStackTrace();
       }
     }
   }
 
-  public void setLearnTable(long telegramId) {
-
-    threadPoolTaskScheduler.initialize();
-    
-    Calendar date = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
-
-    futureTask.put(telegramId, new ArrayList<ScheduledFuture<?>>());
-
-    for (int i = 1; i < 12; i++) {
-      Word word = learnWords.getRandomWord(telegramId);
-
-      date.set(Calendar.SECOND, General.getRandomNumber(1, 57));
-      //date.set(Calendar.MINUTE, General.getRandomNumber(1, 57));
-      //date.set(Calendar.HOUR_OF_DAY, date.get(Calendar.HOUR_OF_DAY) + 1);
- 
-      Runnable task = new Runnable() {
-        @Override
-        public void run() {
-          String message = word.getForeignWord() + " - " + word.getNativeWord();
-          sendMessage(2, telegramId, message, "");
-        }
-      };
-      futureTask.get(telegramId).add(threadPoolTaskScheduler.schedule(task, date.toInstant()));
-    }
-    sendMessage(1, telegramId, "we_add_all_words", "");
-  }
-
-  public void handleIncomingMessage(Message message) {
+  private void handleIncomingMessage(Message message) throws TelegramApiException {
 
     long telegramId = message.getFrom().getId();
-    String messageText = message.getText();
-    resourceBundle = getResourceBundleForUser(telegramId);
+    User user = userRepository.findById(telegramId).get();
 
-    switch (userState.getOrDefault(telegramId, UserState.NONE)) {
-      case FOREIGN_WORD:
-        wordBuffer.put(telegramId, Pair.of(messageText, ""));
-        userState.put(telegramId, UserState.NATIVE_WORD);
-        sendMessage(1, telegramId, "enter_native_word", "");
+    List<SendMessage> forExecute = null;
+
+    if (!message.isUserMessage() && message.hasText()) {
+      if (General.isCommandForOther(message.getText())) {
+        return;
+      }
+    }
+
+    UserState state = userState.getOrDefault(telegramId, UserState.DEFAULT);
+
+    switch (state) {
+      case MAINMENU:
+        forExecute = messageOnMainMenu(message, user, "en", state);
         break;
-      case NATIVE_WORD:
-        wordBuffer.put(telegramId, Pair.of(wordBuffer.get(telegramId).getFirst(), messageText));
-        userState.put(telegramId, UserState.FOREIGN_WORD);
-        sendMessage(1, telegramId, "added", "");
-        sendMessage(1, telegramId, "enter_foreign_word", "");
+      case DECKMENU:
+      case CREATE_DECK_NAME:
+      case DELETE_DECK_NAME:
+      case VIEW_DECK_NAME:
+        forExecute = messageOnDeckMenu(message, user, "en", state);
         break;
-      case LEARNWORDS:
-        if (learnWords.checkWord(messageText, telegramId))
-          sendMessage(1, telegramId, "right", "");
-        else {
-          sendMessage(1, telegramId, "mistake", "");
-          sendMessage(3, telegramId, "right_answer_is", learnWords.getWord(telegramId).getForeignWord());
+      case CARDMENU:
+      case CREATE_FRONT_CARD_NAME:
+      case CREATE_BACK_CARD_NAME:
+        forExecute = messageOnViewDeckMenu(message, user, "en", state);
+        break;
+      case DEFAULT:
+        userState.put(message.getFrom().getId(), UserState.MAINMENU);
+        forExecute = General.onBackMenuChoosen(message, user, "en");
+        break;
+      default:
+        forExecute = null;
+        break;
+    }
+
+    for (SendMessage i : forExecute) {
+      execute(i);
+    }
+  }
+
+  private List<SendMessage> messageOnMainMenu(Message message, User user, String language,
+      UserState state) {
+    SendMessage sendMessageRequest = null;
+    if (message.hasText()) {
+      if (message.getText().equals(General.getMyDeckCommand(language))) {
+        userState.put(user.getTelegramId(), UserState.DECKMENU);
+        List<Deck> result = deckRepository.findByOwner(user);
+        sendMessageRequest = General.onDeckMenuChoosen(message, user, language, result);
+      }
+    }
+    return Arrays.asList(sendMessageRequest);
+  }
+
+  private List<SendMessage> messageOnDeckMenu(Message message, User user, String language,
+      UserState state) {
+    List<SendMessage> forExecute = null;
+
+    switch (state) {
+      case CREATE_DECK_NAME:
+        forExecute = createDeck(message, user);
+        break;
+      case DELETE_DECK_NAME:
+        forExecute = deleteDeck(message, user);
+        break;
+      case VIEW_DECK_NAME:
+        forExecute = viewDeck(message, user);
+        break;
+      case DECKMENU:
+        if (message.getText().equals(General.getCreateDeckCommand(language))) {
+          userState.put(user.getTelegramId(), UserState.CREATE_DECK_NAME);
+          forExecute = General.onCreateDeckChoosen(message, user, language);
+        } else if (message.getText().equals(General.getDeleteDeckCommand(language))) {
+          userState.put(user.getTelegramId(), UserState.DELETE_DECK_NAME);
+          forExecute = General.onDeleteDeckChoosen(message, user, language);
+        } else if (message.getText().equals(General.getExploreDeckCommand(language))) {
+          userState.put(user.getTelegramId(), UserState.VIEW_DECK_NAME);
+          forExecute = General.onViewDeckChoosen(message, user, language);
         }
-        learnWords.removeFirst(telegramId);
-        if (learnWords.getCountWords(telegramId) == 0) {
-          sendMessage(1, telegramId, "thats_all_good_work", "");
-          return;
-        }
-        String nextWord = learnWords.getWord(telegramId).getNativeWord();
-        sendMessage(2, telegramId, "", nextWord);
         break;
       default:
         break;
     }
+    return forExecute;
   }
-  
-  public void handleIncomingCommand(Message message) {
-    long telegramId = message.getFrom().getId();
-    switch(message.getText()) {
-      case "/start":
-        createUser(telegramId);
-        sendMessage(1, telegramId, "start", "");
+
+  private List<SendMessage> messageOnViewDeckMenu(Message message, User user, String language,
+      UserState state) {
+    List<SendMessage> forExecute = null;
+
+    switch (state) {
+      case CREATE_FRONT_CARD_NAME:
+        forExecute = createCard(message, user);
         break;
-      case "/add":
-        userState.put(telegramId, UserState.FOREIGN_WORD);
-        sendMessage(1, telegramId, "enter_words", "");
-        sendMessage(1, telegramId, "enter_foreign_word", "");
+      case CREATE_BACK_CARD_NAME:
+        forExecute = createCard(message, user);
         break;
-      case "/vocabulary":
-        LinkedList<Word> todayWords = learnWords.getVocabulary(message.getFrom().getId());
-        if (todayWords.size() != 0)
-          sendMessage(2, telegramId, "", General.convertListOfWordsToString(todayWords));
-        else
-          sendMessage(1, telegramId, "empty", "");
+      case DELETE_CARD_NAME:
+        forExecute = deleteCard(message, user);
         break;
-      case "/learn_todays_words":
-        userState.put(telegramId, UserState.LEARNWORDS);
-        learnWords.startLearn(telegramId);
-        String nativeWord = learnWords.getWord(telegramId).getNativeWord();
-        sendMessage(1, telegramId, "lets_start", "");
-        sendMessage(2, telegramId, "", nativeWord);
-        learnWords.startLearn(telegramId);
+      case CARDMENU:
+        if (message.getText().equals(General.getCreateCardCommand(language))) {
+          userState.put(user.getTelegramId(), UserState.CREATE_FRONT_CARD_NAME);
+          forExecute = General.onCreateCardChoosen(message, user, language);
+        } else if (message.getText().equals(General.getDeleteCardCommand(language))) {
+          userState.put(user.getTelegramId(), UserState.DELETE_DECK_NAME);
+          forExecute = General.onDeleteCardChoosen(message, user, language);
+        }
         break;
-      case "/finish_add_words":
-        setLearnTable(telegramId); 
+      default:
         break;
     }
-  }
-  
-  public void addWordToVocabulary(long telegramId) {
-    Word word = context.getBean(Word.class);
-    word.setForeignWord(wordBuffer.get(telegramId).getFirst());
-    word.setNativeWord(wordBuffer.get(telegramId).getSecond());
-    word.setTelegramId(telegramId);
-    word.setAddingTime(General.getUnixTimeInSeconds());
-    wordRepository.save(word);
+    return forExecute;
   }
 
-  public boolean isCommand(Message message) {
-    return message.getText().matches("^/.*");
-  }
+  private List<SendMessage> createCard(Message message, User user) {
 
-  public void createUser(long telegramId) {
-    User user = context.getBean(User.class);
-    user.setTelegramId(telegramId);
-    user.setJoinDate(General.getUnixTimeInSeconds());
-    user.setTimezone("GMT+3:00");
-    usersRepository.save(user);
-  }
-
-  public void sendMessage(int type, long telegramId, String text, String additionalText) {
     SendMessage sendMessage = new SendMessage();
-    sendMessage.setChatId(telegramId);
-    
-    if(type == 1) {
-      resourceBundle = getResourceBundleForUser(telegramId);
-      sendMessage.setText(resourceBundle.getString(text));
-    } else if(type == 2) {
-      sendMessage.setText(additionalText);
-    } else if(type == 3) {
-      String s = resourceBundle.getString(text) + additionalText;
-      sendMessage.setText(s);
+    sendMessage.setChatId(user.getTelegramId());
+
+    if (userState.get(user.getTelegramId()).equals(UserState.CREATE_FRONT_CARD_NAME)) {
+      Card card = context.getBean(Card.class);
+      card.setFront(message.getText());
+      card.setAddingTime(General.getUnixTimeInSeconds());
+      card.setDeck(userDeckState.get(user.getTelegramId()));
+      cardBuffer.put(user.getTelegramId(), card);
+      sendMessage.setText("ENETER BACK CARD NAME");
+      userState.put(user.getTelegramId(), UserState.CREATE_BACK_CARD_NAME);
+    } else if (userState.get(user.getTelegramId()).equals(UserState.CREATE_BACK_CARD_NAME)) {
+      Card card = cardBuffer.get(user.getTelegramId());
+      card.setBack(message.getText());
+      cardRepository.save(card);
+      sendMessage.setText("SUCCESS");
+      userState.put(user.getTelegramId(), UserState.CARDMENU);
     }
-    try {
-      execute(sendMessage);
-    } catch (TelegramApiException e) {
-      e.printStackTrace();
+    return Arrays.asList(sendMessage);
+  }
+
+  private List<SendMessage> deleteCard(Message message, User user) {
+    Card card = context.getBean(Card.class);
+
+    return null;
+  }
+
+  private List<SendMessage> createDeck(Message message, User owner) {
+    Deck deck = context.getBean(Deck.class);
+    deck.setName(message.getText());
+    deck.setOwner(owner);
+    deckRepository.save(deck);
+
+    SendMessage sendMessage = new SendMessage();
+    sendMessage.setChatId(owner.getTelegramId());
+    sendMessage.setText("SUCCESS");
+
+    return Arrays.asList(sendMessage);
+  }
+
+  private List<SendMessage> deleteDeck(Message message, User owner) {
+    deckRepository.removeByNameAndOwner(message.getText(), owner);
+    SendMessage sendMessage = new SendMessage();
+    sendMessage.setChatId(owner.getTelegramId());
+    sendMessage.setText("SUCCESS");
+    return Arrays.asList(sendMessage);
+  }
+  
+  private List<SendMessage> viewDeck(Message message, User user) {
+    Deck deck = deckRepository.findByOwnerAndName(user, message.getText());
+    userDeckState.put(user.getTelegramId(), deck);
+    userState.put(user.getTelegramId(), UserState.CARDMENU);
+    List<Card> cards = cardRepository.findByDeck(deck);
+
+    String text = "";
+
+    for (Card card : cards) {
+      text = text + card.getFront() + " : " + card.getBack() + "\n";
     }
+
+    SendMessage sendMessage = new SendMessage();
+    sendMessage.setChatId(user.getTelegramId());
+    sendMessage.setText(text.isEmpty() ? "EMPTY" : text);
+    sendMessage.setReplyMarkup(General.getViewDeckKeyboard("s"));
+    return Arrays.asList(sendMessage);
   }
 
   @Override

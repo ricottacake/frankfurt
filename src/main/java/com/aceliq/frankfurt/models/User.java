@@ -10,24 +10,6 @@ public class User {
   @Id
   private long telegramId;
   private long joinDate;
-  private String timezone;
-  private String lang;
-
-  public String getLang() {
-    return lang;
-  }
-
-  public void setLang(String lang) {
-    this.lang = lang;
-  }
-
-  public String getTimezone() {
-    return timezone;
-  }
-
-  public void setTimezone(String timezone) {
-    this.timezone = timezone;
-  }
 
   public long getTelegramId() {
     return telegramId;
