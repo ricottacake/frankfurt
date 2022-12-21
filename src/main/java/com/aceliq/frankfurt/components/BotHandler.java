@@ -3,7 +3,7 @@ package com.aceliq.frankfurt.components;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
-
+import java.util.Optional;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Component;
@@ -74,6 +74,7 @@ public class BotHandler extends TelegramLongPollingBot {
     }
 
     UserState state = userState.getOrDefault(telegramId, UserState.DEFAULT);
+    System.out.println(state);
 
     switch (state) {
       case MAINMENU:
@@ -82,13 +83,14 @@ public class BotHandler extends TelegramLongPollingBot {
       case DECKMENU:
       case CREATE_DECK_NAME:
       case DELETE_DECK_NAME:
-      case VIEW_DECK_NAME:
+      case EXPLORE_DECK_NAME:
         forExecute = messageOnDeckMenu(message, user, "en", state);
         break;
-      case CARDMENU:
+      case EXPLORE_DECK_MENU:
       case CREATE_FRONT_CARD_NAME:
       case CREATE_BACK_CARD_NAME:
-        forExecute = messageOnViewDeckMenu(message, user, "en", state);
+      case DELETE_CARD_NAME:
+        forExecute = messageOnExploreDeckMenu(message, user, "en", state);
         break;
       case DEFAULT:
         userState.put(message.getFrom().getId(), UserState.MAINMENU);
@@ -106,15 +108,18 @@ public class BotHandler extends TelegramLongPollingBot {
 
   private List<SendMessage> messageOnMainMenu(Message message, User user, String language,
       UserState state) {
-    SendMessage sendMessageRequest = null;
+    List<SendMessage> forExecute = null;
     if (message.hasText()) {
       if (message.getText().equals(General.getMyDeckCommand(language))) {
         userState.put(user.getTelegramId(), UserState.DECKMENU);
         List<Deck> result = deckRepository.findByOwner(user);
-        sendMessageRequest = General.onDeckMenuChoosen(message, user, language, result);
+        forExecute = General.onDeckMenuChoosen(message, user, language, result);
+      } else {
+        userState.put(user.getTelegramId(), UserState.MAINMENU);
+        //sendMessageRequest = General.onBackMenuChoosen(message, user, "en");
       }
     }
-    return Arrays.asList(sendMessageRequest);
+    return forExecute;
   }
 
   private List<SendMessage> messageOnDeckMenu(Message message, User user, String language,
@@ -128,7 +133,7 @@ public class BotHandler extends TelegramLongPollingBot {
       case DELETE_DECK_NAME:
         forExecute = deleteDeck(message, user);
         break;
-      case VIEW_DECK_NAME:
+      case EXPLORE_DECK_NAME:
         forExecute = viewDeck(message, user);
         break;
       case DECKMENU:
@@ -139,8 +144,12 @@ public class BotHandler extends TelegramLongPollingBot {
           userState.put(user.getTelegramId(), UserState.DELETE_DECK_NAME);
           forExecute = General.onDeleteDeckChoosen(message, user, language);
         } else if (message.getText().equals(General.getExploreDeckCommand(language))) {
-          userState.put(user.getTelegramId(), UserState.VIEW_DECK_NAME);
+          userState.put(user.getTelegramId(), UserState.EXPLORE_DECK_NAME);
           forExecute = General.onViewDeckChoosen(message, user, language);
+        } else {
+          userState.put(user.getTelegramId(), UserState.DECKMENU);
+          List<Deck> result = deckRepository.findByOwner(user);
+          forExecute = General.onDeckMenuChoosen(message, user, language, result);
         }
         break;
       default:
@@ -149,9 +158,11 @@ public class BotHandler extends TelegramLongPollingBot {
     return forExecute;
   }
 
-  private List<SendMessage> messageOnViewDeckMenu(Message message, User user, String language,
+  private List<SendMessage> messageOnExploreDeckMenu(Message message, User user, String language,
       UserState state) {
     List<SendMessage> forExecute = null;
+    
+    
 
     switch (state) {
       case CREATE_FRONT_CARD_NAME:
@@ -163,13 +174,17 @@ public class BotHandler extends TelegramLongPollingBot {
       case DELETE_CARD_NAME:
         forExecute = deleteCard(message, user);
         break;
-      case CARDMENU:
+      case EXPLORE_DECK_MENU:
         if (message.getText().equals(General.getCreateCardCommand(language))) {
           userState.put(user.getTelegramId(), UserState.CREATE_FRONT_CARD_NAME);
           forExecute = General.onCreateCardChoosen(message, user, language);
         } else if (message.getText().equals(General.getDeleteCardCommand(language))) {
           userState.put(user.getTelegramId(), UserState.DELETE_DECK_NAME);
           forExecute = General.onDeleteCardChoosen(message, user, language);
+        } else {
+          System.out.println(message.getText());
+          userState.put(user.getTelegramId(), UserState.EXPLORE_DECK_MENU);
+          forExecute = viewDeck(message, user);
         }
         break;
       default:
@@ -196,7 +211,7 @@ public class BotHandler extends TelegramLongPollingBot {
       card.setBack(message.getText());
       cardRepository.save(card);
       sendMessage.setText("SUCCESS");
-      userState.put(user.getTelegramId(), UserState.CARDMENU);
+      userState.put(user.getTelegramId(), UserState.EXPLORE_DECK_MENU);
     }
     return Arrays.asList(sendMessage);
   }
@@ -229,9 +244,19 @@ public class BotHandler extends TelegramLongPollingBot {
   }
   
   private List<SendMessage> viewDeck(Message message, User user) {
-    Deck deck = deckRepository.findByOwnerAndName(user, message.getText());
-    userDeckState.put(user.getTelegramId(), deck);
-    userState.put(user.getTelegramId(), UserState.CARDMENU);
+    Optional<Deck> deck = deckRepository.findByOwnerAndName(user, message.getText());
+    
+    if(deck.isPresent()) {
+      SendMessage sendMessage = new SendMessage();
+      sendMessage.setChatId(user.getTelegramId());
+      sendMessage.setText("DECK NOT EXIST");
+      sendMessage.setReplyMarkup(General.getViewDeckKeyboard("s"));
+      return Arrays.asList(sendMessage);
+    }
+    
+    userDeckState.put(user.getTelegramId(), deck.get());
+    userState.put(user.getTelegramId(), UserState.EXPLORE_DECK_MENU);
+    
     List<Card> cards = cardRepository.findByDeck(deck);
 
     String text = "";
@@ -239,6 +264,7 @@ public class BotHandler extends TelegramLongPollingBot {
     for (Card card : cards) {
       text = text + card.getFront() + " : " + card.getBack() + "\n";
     }
+    System.out.println(deck.getName());
 
     SendMessage sendMessage = new SendMessage();
     sendMessage.setChatId(user.getTelegramId());

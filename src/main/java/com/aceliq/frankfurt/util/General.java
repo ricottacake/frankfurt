@@ -194,7 +194,7 @@ public class General {
     return text.startsWith("/") && !isSimpleCommand && !isCommandForMe;
   }
   
-  public static SendMessage onDeckMenuChoosen(Message message, User user, String language, List<Deck> result) {
+  public static List<SendMessage> onDeckMenuChoosen(Message message, User user, String language, List<Deck> result) {
     ReplyKeyboardMarkup replyKeyboardMarkup = General.getDeckMenuKeyboard(language);
 
     String text = "";
@@ -205,7 +205,7 @@ public class General {
     sendMessage.setChatId(message.getChatId());
     sendMessage.setText(text);
     sendMessage.setReplyMarkup(replyKeyboardMarkup);
-    return sendMessage;
+    return Arrays.asList(sendMessage);
   }
 
 }
