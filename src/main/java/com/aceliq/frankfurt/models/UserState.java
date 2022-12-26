@@ -13,6 +13,7 @@ public enum UserState {
   DELETE_CARD_NAME,
   EXPLORE_DECK_MENU,
   
-  DEFAULT
+  DEFAULT,
   
+  LEARN
 }

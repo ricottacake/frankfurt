@@ -13,10 +13,6 @@ import java.util.MissingResourceException;
 import java.util.PropertyResourceBundle;
 import java.util.ResourceBundle;
 
-/**
- * @author Ruben Bermudez
- * @version 1.0
- */
 public class LocalisationService {
   private static final String STRINGS_FILE = "strings";
   private static final Object lock = new Object();
@@ -31,12 +27,6 @@ public class LocalisationService {
     }
   }
 
-  /**
-   * Get a string in default language (en)
-   *
-   * @param key key of the resource to fetch
-   * @return fetched string or error message otherwise
-   */
   public static String getString(String key) {
     String result;
     try {
@@ -48,12 +38,6 @@ public class LocalisationService {
     return result;
   }
 
-  /**
-   * Get a string in default language
-   *
-   * @param key key of the resource to fetch
-   * @return fetched string or error message otherwise
-   */
   public static String getString(String key, String language) {
     String result;
     try {

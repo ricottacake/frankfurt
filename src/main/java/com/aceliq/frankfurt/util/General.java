@@ -50,6 +50,10 @@ public class General {
     return String.format(LocalisationService.getString("delete_card_command", language));
   }
   
+  public static String getStudyDeckCommand(String language) {
+    return String.format(LocalisationService.getString("study_deck_command", language));
+  }
+  
   public static String getExploreDeckCommand(String language) {
     return String.format(LocalisationService.getString("explore_deck_command", language));
   }
@@ -155,7 +159,7 @@ public class General {
     return keyboardMarkup;
   }
   
-  public static ReplyKeyboardMarkup getViewDeckKeyboard(String language) {
+  public static ReplyKeyboardMarkup getExploreDeckKeyboard(String language) {
     ReplyKeyboardMarkup keyboardMarkup = new ReplyKeyboardMarkup();
     keyboardMarkup.setResizeKeyboard(true);
     keyboardMarkup.setOneTimeKeyboard(true);
@@ -170,11 +174,15 @@ public class General {
     KeyboardButton deleteCard = new KeyboardButton();
     deleteCard.setText(General.getDeleteCardCommand(language));
     
+    KeyboardButton studyDeck = new KeyboardButton();
+    studyDeck.setText(General.getStudyDeckCommand(language));
+    
     KeyboardButton menu = new KeyboardButton();
     menu.setText("MENU");
 
     row.add(createCard);
     row.add(deleteCard);
+    row.add(studyDeck);
     row.add(menu);
 
     keyboard.add(row);
@@ -194,18 +202,22 @@ public class General {
     return text.startsWith("/") && !isSimpleCommand && !isCommandForMe;
   }
   
-  public static List<SendMessage> onDeckMenuChoosen(Message message, User user, String language, List<Deck> result) {
+  public static SendMessage onDeckMenuChoosen(Message message, User user, String language, List<Deck> result) {
     ReplyKeyboardMarkup replyKeyboardMarkup = General.getDeckMenuKeyboard(language);
 
     String text = "";
     for (Deck d : result)
       text = text + d.getName() + "\n";
     
+    if(result.isEmpty()) {
+      text = "EMPTY";
+    }
+    
     SendMessage sendMessage = new SendMessage();
     sendMessage.setChatId(message.getChatId());
     sendMessage.setText(text);
     sendMessage.setReplyMarkup(replyKeyboardMarkup);
-    return Arrays.asList(sendMessage);
+    return sendMessage;
   }
 
 }

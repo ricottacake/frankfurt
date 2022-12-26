@@ -10,4 +10,5 @@ import com.aceliq.frankfurt.models.Deck;
 @Repository
 public interface CardRepository extends CrudRepository<Card, Integer> {
   List<Card> findByDeck(Deck deck);
+  void removeByFrontAndDeck(String front, Deck deck);
 }
