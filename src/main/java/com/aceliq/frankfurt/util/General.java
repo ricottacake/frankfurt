@@ -117,13 +117,13 @@ public class General {
     return keyboardMarkup;
   }
   
-  public static List<SendMessage> onBackMenuChoosen(Message message, User user, String language) {
+  public static SendMessage onBackMenuChoosen(Message message, User user, String language) {
     ReplyKeyboardMarkup replyKeyboardMarkup = getMainMenuKeyboard(language);
     SendMessage sendMessage = new SendMessage();
     sendMessage.setChatId(user.getTelegramId());
     sendMessage.setReplyMarkup(replyKeyboardMarkup);
     sendMessage.setText("Menu");
-    return Arrays.asList(sendMessage);
+    return sendMessage;
   }
   
   public static ReplyKeyboardMarkup getDeckMenuKeyboard(String language) {

@@ -65,9 +65,10 @@ public class BotHandler extends TelegramLongPollingBot {
 
   private void handleIncomingMessage(Message message) {
     
-    User user;
-
     long telegramId = message.getFrom().getId();
+    List<SendMessage> forExecute = new ArrayList<>();
+    User user;
+    
     Optional<User> findUser = userRepository.findById(telegramId);
     
     if(findUser.isEmpty()) {
@@ -75,13 +76,13 @@ public class BotHandler extends TelegramLongPollingBot {
     } else {
       user = findUser.get();
     }
-
-    List<SendMessage> forExecute = null;
-
-    if (!message.isUserMessage() && message.hasText()) {
-      if (General.isCommandForOther(message.getText())) {
-        return;
-      }
+    System.out.println(message.getText());
+    if(message.getText().equals("/start")) {
+      SendMessage sendMessage = new SendMessage();
+      sendMessage.setText("Hello!\n"
+          + "This bot will help you learn foreign words with the help of flashcards. You can create a large number of decks of cards and add cards to them with a specific phrase and translation into your own language. In addition, the bot allows you to check how well you learned this deck of cards, to select a deck and click \"Check me!\" the number of correct answers.");
+      sendMessage.setChatId(message.getChatId());
+      forExecute.add(sendMessage);
     }
 
     UserState state = userState.getOrDefault(telegramId, UserState.DEFAULT);
@@ -105,7 +106,7 @@ public class BotHandler extends TelegramLongPollingBot {
         break;
       default:
         userState.put(message.getFrom().getId(), UserState.MAINMENU);
-        forExecute = General.onBackMenuChoosen(message, user, "en");
+        forExecute.add(General.onBackMenuChoosen(message, user, "en"));
         break;
     }
     for (SendMessage i : forExecute) {
@@ -117,8 +118,7 @@ public class BotHandler extends TelegramLongPollingBot {
     }
   }
 
-  private List<SendMessage> messageOnMainMenu(Message message, User user, String language,
-      UserState state) {
+  private List<SendMessage> messageOnMainMenu(Message message, User user, String language, UserState state) {
     List<SendMessage> forExecute = new ArrayList<SendMessage>();
     SendMessage sendMessage = new SendMessage();
     sendMessage.setChatId(user.getTelegramId());
@@ -127,11 +127,10 @@ public class BotHandler extends TelegramLongPollingBot {
       case MAINMENU:
         if (message.getText().equals(General.getMyDeckCommand(language))) {
           userState.put(user.getTelegramId(), UserState.DECKMENU);
-          forExecute.add(
-              General.onDeckMenuChoosen(message, user, language, deckRepository.findByOwner(user)));
+          forExecute.add(General.onDeckMenuChoosen(message, user, language, deckRepository.findByOwner(user)));
         } else {
           userState.put(user.getTelegramId(), UserState.MAINMENU);
-          forExecute = General.onBackMenuChoosen(message, user, "en");
+          forExecute.add(General.onBackMenuChoosen(message, user, "en"));
         }
         break;
       default:
@@ -194,8 +193,7 @@ public class BotHandler extends TelegramLongPollingBot {
     return forExecute;
   }
 
-  private List<SendMessage> messageOnExploreDeckMenu(Message message, User user, String language,
-      UserState state) {
+  private List<SendMessage> messageOnExploreDeckMenu(Message message, User user, String language, UserState state) {
     List<SendMessage> forExecute = new ArrayList<SendMessage>();
     Deck deck = userDeckState.get(user.getTelegramId());
 
