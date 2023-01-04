@@ -97,6 +97,7 @@ public class General {
     sendMessage.setChatId(message.getChatId());
     sendMessage.setText("Hello!\n"
         + "This bot will help you learn foreign words with the help of flashcards. You can create a large number of decks of cards and add cards to them with a specific phrase and translation into your own language. In addition, the bot allows you to check how well you learned this deck of cards, to select a deck and click \"Check me!\" the number of correct answers.");
+    sendMessage.setReplyMarkup(getMainMenuKeyboard(language));
     return sendMessage;
   }
 
@@ -129,7 +130,7 @@ public class General {
     SendMessage sendMessage = new SendMessage();
     sendMessage.setChatId(user.getTelegramId());
     sendMessage.setReplyMarkup(replyKeyboardMarkup);
-    sendMessage.setText("Menu");
+    sendMessage.setText("You are in Main Menu.");
     return sendMessage;
   }
 

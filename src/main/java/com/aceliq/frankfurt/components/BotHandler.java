@@ -118,6 +118,9 @@ public class BotHandler extends TelegramLongPollingBot {
     if (message.getText().equals("/start")) {
       forExecute.add(General.onStart(message, user, language));
       userState.put(user.getTelegramId(), UserState.MAINMENU);
+    } else {
+      forExecute.add(General.onBackMenuChoosen(message, user, language));
+      userState.put(user.getTelegramId(), UserState.MAINMENU);
     }
     return forExecute;
   }
@@ -154,22 +157,21 @@ public class BotHandler extends TelegramLongPollingBot {
 
     switch (state) {
       case CREATE_DECK_NAME:
-        createDeck(message.getText(), user);
+        Deck newDeck = createDeck(message.getText(), user);
+        userDeckState.put(user.getTelegramId(), newDeck);
+        userState.put(user.getTelegramId(), UserState.DECKMENU);
         sendMessage.setText("SUCCESS");
         forExecute.add(sendMessage);
-
-        SendMessage a = new SendMessage();
-        a.setChatId(user.getTelegramId());
-        a.setText(exploreDeck(userDeckState.get(user.getTelegramId()).getName(), user));
-
-        userState.put(user.getTelegramId(), UserState.DECKMENU);
         forExecute.add(
             General.onDeckMenuChoosen(message, user, language, deckRepository.findByOwner(user)));
         break;
       case DELETE_DECK_NAME:
         deleteDeck(message.getText(), user);
+        userState.put(user.getTelegramId(), UserState.DECKMENU);
         sendMessage.setText("SUCCESS");
         forExecute.add(sendMessage);
+        forExecute.add(
+            General.onDeckMenuChoosen(message, user, language, deckRepository.findByOwner(user)));
         break;
       case EXPLORE_DECK_NAME:
         String deckList = exploreDeck(message.getText(), user);
@@ -289,11 +291,12 @@ public class BotHandler extends TelegramLongPollingBot {
     cardRepository.removeByFrontAndDeck(front, deck);
   }
 
-  public void createDeck(String deckName, User owner) {
+  public Deck createDeck(String deckName, User owner) {
     Deck deck = context.getBean(Deck.class);
     deck.setName(deckName);
     deck.setOwner(owner);
     deckRepository.save(deck);
+    return deck;
   }
 
   public void deleteDeck(String deckName, User owner) {
