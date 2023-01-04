@@ -15,7 +15,7 @@ public class AppConfig {
   public TimeIsOver runnableTaskBean(User user) {
     return new TimeIsOver(user);
   }
-  
+
   @Bean
   public Deck deck() {
     return new Deck();
