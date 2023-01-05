@@ -228,5 +228,14 @@ public class General {
     sendMessage.setReplyMarkup(replyKeyboardMarkup);
     return sendMessage;
   }
-
+  
+  public static SendMessage convertDeckListToMessage(List<Card> cards, User user) {
+    String text = "";
+    for (Card card : cards)
+      text = text + card.getFront() + " : " + card.getBack() + "\n";
+    SendMessage sendMessage = new SendMessage();
+    sendMessage.setChatId(user.getTelegramId());
+    sendMessage.setText(text.isEmpty() ? "EMPTY" : text);
+    return sendMessage;
+  }
 }

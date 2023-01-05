@@ -174,10 +174,7 @@ public class BotHandler extends TelegramLongPollingBot {
             General.onDeckMenuChoosen(message, user, language, deckRepository.findByOwner(user)));
         break;
       case EXPLORE_DECK_NAME:
-        String deckList = exploreDeck(message.getText(), user);
-        sendMessage.setText(deckList);
-        sendMessage.setReplyMarkup(General.getExploreDeckKeyboard(language));
-        forExecute.add(sendMessage);
+        forExecute.add(exploreDeck(message.getText(), user));
         break;
       case DECKMENU:
         if (message.getText().equals(General.getCreateDeckCommand(language))) {
@@ -219,12 +216,7 @@ public class BotHandler extends TelegramLongPollingBot {
         createCard(message.getText(), deck);
         sendMessage.setText("SUCCESS");
         forExecute.add(sendMessage);
-
-        SendMessage a = new SendMessage();
-        a.setChatId(user.getTelegramId());
-        a.setText(exploreDeck(userDeckState.get(user.getTelegramId()).getName(), user));
-
-        forExecute.add(a);
+        forExecute.add(exploreDeck(userDeckState.get(user.getTelegramId()).getName(), user));
         break;
       case DELETE_CARD_NAME:
         deleteCard(message.getText(), deck);
@@ -243,10 +235,7 @@ public class BotHandler extends TelegramLongPollingBot {
           studyDeck(deck);
         } else {
           userState.put(user.getTelegramId(), UserState.EXPLORE_DECK_MENU);
-          SendMessage b = new SendMessage();
-          b.setChatId(user.getTelegramId());
-          b.setText(exploreDeck(userDeckState.get(user.getTelegramId()).getName(), user));
-          forExecute.add(b);
+          forExecute.add(exploreDeck(userDeckState.get(user.getTelegramId()).getName(), user));
         }
         break;
       case LEARN:
@@ -282,7 +271,6 @@ public class BotHandler extends TelegramLongPollingBot {
       Card card = cardBuffer.get(telegramId);
       card.setBack(cardName);
       cardRepository.save(card);
-
       userState.put(telegramId, UserState.EXPLORE_DECK_MENU);
     }
   }
@@ -303,26 +291,12 @@ public class BotHandler extends TelegramLongPollingBot {
     deckRepository.removeByNameAndOwner(deckName, owner);
   }
 
-  public String exploreDeck(String deckName, User user) {
-
+  public SendMessage exploreDeck(String deckName, User user) {
     Optional<Deck> deck = deckRepository.findByOwnerAndName(user, deckName);
-
-    if (deck.isEmpty()) {
-      return "DECK NOT EXIST";
-    }
-
     userDeckState.put(user.getTelegramId(), deck.get());
     userState.put(user.getTelegramId(), UserState.EXPLORE_DECK_MENU);
-
     List<Card> cards = cardRepository.findByDeck(deck.get());
-
-    String text = "";
-
-    for (Card card : cards) {
-      text = text + card.getFront() + " : " + card.getBack() + "\n";
-    }
-
-    return text.isEmpty() ? "EMPTY" : text;
+    return General.convertDeckListToMessage(cards, user);
   }
 
   public void studyDeck(Deck deck) {

@@ -16,18 +16,18 @@ public class AppConfig {
   public TimeIsOver runnableTaskBean(User user) {
     return new TimeIsOver(user);
   }
-  
+
   @Scope(value = "prototype")
   @Bean
   public Deck deck() {
     return new Deck();
   }
-  
+
   @Bean
   public User user() {
     return new User();
   }
-  
+
   @Bean
   public Card card() {
     return new Card();
