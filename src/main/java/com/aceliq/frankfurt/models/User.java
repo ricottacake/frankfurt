@@ -3,6 +3,7 @@ package com.aceliq.frankfurt.models;
 import javax.persistence.Entity;
 import javax.persistence.Id;
 import javax.persistence.Table;
+import com.aceliq.frankfurt.util.Languages;
 
 @Entity
 @Table(name = "users")
@@ -10,6 +11,15 @@ public class User {
   @Id
   private long telegramId;
   private long joinDate;
+  private String language;
+
+  public String getLanguage() {
+    return language;
+  }
+
+  public void setLanguage(String language) {
+    this.language = language;
+  }
 
   public long getTelegramId() {
     return telegramId;

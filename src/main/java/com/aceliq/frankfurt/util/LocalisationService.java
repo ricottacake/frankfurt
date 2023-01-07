@@ -23,7 +23,7 @@ public class LocalisationService {
   static {
     synchronized (lock) {
       defaultLanguage = new Utf8ResourceBundle(STRINGS_FILE, Locale.ROOT);
-      supportedLanguages.add(new Language("en", "English"));
+      supportedLanguages.add(new Language("EN", "English"));
     }
   }
 

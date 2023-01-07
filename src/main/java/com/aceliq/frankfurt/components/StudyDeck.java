@@ -24,7 +24,6 @@ import com.aceliq.frankfurt.models.UserState;
 public class StudyDeck {
 
   private HashMap<Long, ArrayDeque<Card>> userTable = new HashMap<>();
-  //private HashMap<Long, Integer> score = new HashMap<>();
   private HashMap<Long, ScheduledFuture<?>> userFuture = new HashMap<>();
 
   private ApplicationContext context;
@@ -62,7 +61,7 @@ public class StudyDeck {
 
   public void finishStudy(User user) {
     SendMessage message = new SendMessage();
-    message.setText("FINISHED");
+    message.setText("That's all");
     message.setChatId(user.getTelegramId());
 
     botHandler.setUserState(user, UserState.EXPLORE_DECK_MENU);
@@ -87,9 +86,9 @@ public class StudyDeck {
     SendMessage answer = new SendMessage();
     answer.setChatId(message.getChatId());
     if (message.getText().equals(expectedWord)) {
-      answer.setText("TRUE");
+      answer.setText("Right");
     } else {
-      answer.setText("FALSE");
+      answer.setText("Not right");
     }
     try {
       botHandler.execute(answer);
@@ -102,7 +101,6 @@ public class StudyDeck {
   }
 
   public void start(Deck deck) {
-
     List<Card> cards = cardRepository.findByDeck(deck);
     Collections.shuffle(cards);
     userTable.put(deck.getOwner().getTelegramId(), new ArrayDeque<Card>(cards));

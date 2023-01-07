@@ -32,6 +32,14 @@ public class General {
   public static int getRandomNumber(int min, int max) {
     return (int) ((Math.random() * (max - min)) + min);
   }
+  
+  public static String getMyDecksCommand(String language) {
+    return String.format(LocalisationService.getString("my_decks", language));
+  }
+
+  public static String getSettingsCommand(String language) {
+    return String.format(LocalisationService.getString("settings", language));
+  }
 
   public static String getCreateDeckCommand(String language) {
     return String.format(LocalisationService.getString("create_deck_command", language));
@@ -56,48 +64,66 @@ public class General {
   public static String getExploreDeckCommand(String language) {
     return String.format(LocalisationService.getString("explore_deck_command", language));
   }
-
-  public static List<SendMessage> onCreateDeckChoosen(Message message, User user, String language) {
+  
+  public static String getMenuCommand(String language) {
+    return String.format(LocalisationService.getString("menu", language));
+  }
+  
+  public static SendMessage getSuccessMessage(User user) {
+    SendMessage sendMessage = new SendMessage();
+    sendMessage.setChatId(user.getTelegramId());
+    sendMessage.setText(LocalisationService.getString("success", user.getLanguage()));
+    return sendMessage;
+  }
+  
+  public static SendMessage getEnterBackCardNameMessage(User user) {
+    SendMessage sendMessage = new SendMessage();
+    sendMessage.setChatId(user.getTelegramId());
+    sendMessage.setText(LocalisationService.getString("enter_back_card_message", user.getLanguage()));
+    return sendMessage;
+  }
+  
+  public static List<SendMessage> onCreateDeckChoosen(Message message, User user) {
     SendMessage sendMessage = new SendMessage();
     sendMessage.setChatId(message.getChatId());
-    sendMessage.setText(LocalisationService.getString("enter_name_for_new_deck", language));
+    sendMessage.setText(LocalisationService.getString("enter_name_for_new_deck", user.getLanguage()));
     return Arrays.asList(sendMessage);
   }
 
-  public static List<SendMessage> onViewDeckChoosen(Message message, User user, String language) {
+  public static List<SendMessage> onViewDeckChoosen(Message message, User user) {
     SendMessage sendMessage = new SendMessage();
     sendMessage.setChatId(message.getChatId());
-    sendMessage.setText(LocalisationService.getString("enter_name_for_view_deck", language));
+    sendMessage.setText(LocalisationService.getString("enter_name_for_view_deck", user.getLanguage()));
     return Arrays.asList(sendMessage);
   }
 
-  public static List<SendMessage> onDeleteDeckChoosen(Message message, User user, String language) {
+  public static List<SendMessage> onDeleteDeckChoosen(Message message, User user) {
     SendMessage sendMessage = new SendMessage();
     sendMessage.setChatId(message.getChatId());
-    sendMessage.setText(LocalisationService.getString("enter_name_for_delete_deck", language));
+    sendMessage.setText(LocalisationService.getString("enter_name_for_delete_deck", user.getLanguage()));
     return Arrays.asList(sendMessage);
   }
 
-  public static List<SendMessage> onCreateCardChoosen(Message message, User user, String language) {
+  public static List<SendMessage> onCreateCardChoosen(Message message, User user) {
     SendMessage sendMessage = new SendMessage();
     sendMessage.setChatId(message.getChatId());
     sendMessage.setText("ENTER NEW CARD FRONT NAME:");
     return Arrays.asList(sendMessage);
   }
 
-  public static List<SendMessage> onDeleteCardChoosen(Message message, User user, String language) {
+  public static List<SendMessage> onDeleteCardChoosen(Message message, User user) {
     SendMessage sendMessage = new SendMessage();
     sendMessage.setChatId(message.getChatId());
-    sendMessage.setText("ENTER DECK NAME FOR DELETE:");
+    sendMessage.setText("ENTER CARD FRONT NAME FOR DELETE:");
     return Arrays.asList(sendMessage);
   }
 
-  public static SendMessage onStart(Message message, User user, String language) {
+  public static SendMessage onStart(Message message, User user) {
     SendMessage sendMessage = new SendMessage();
     sendMessage.setChatId(message.getChatId());
     sendMessage.setText("Hello!\n"
         + "This bot will help you learn foreign words with the help of flashcards. You can create a large number of decks of cards and add cards to them with a specific phrase and translation into your own language. In addition, the bot allows you to check how well you learned this deck of cards, to select a deck and click \"Check me!\" the number of correct answers.");
-    sendMessage.setReplyMarkup(getMainMenuKeyboard(language));
+    sendMessage.setReplyMarkup(getMainMenuKeyboard(user.getLanguage().toString()));
     return sendMessage;
   }
 
@@ -111,10 +137,10 @@ public class General {
     KeyboardRow row = new KeyboardRow();
 
     KeyboardButton myDecks = new KeyboardButton();
-    myDecks.setText("My Decks");
+    myDecks.setText(getMyDecksCommand(language));
 
     KeyboardButton settings = new KeyboardButton();
-    settings.setText("Settings");
+    settings.setText(getSettingsCommand(language));
 
     row.add(myDecks);
     row.add(settings);
@@ -125,8 +151,8 @@ public class General {
     return keyboardMarkup;
   }
 
-  public static SendMessage onBackMenuChoosen(Message message, User user, String language) {
-    ReplyKeyboardMarkup replyKeyboardMarkup = getMainMenuKeyboard(language);
+  public static SendMessage onBackMenuChoosen(Message message, User user) {
+    ReplyKeyboardMarkup replyKeyboardMarkup = getMainMenuKeyboard(user.getLanguage());
     SendMessage sendMessage = new SendMessage();
     sendMessage.setChatId(user.getTelegramId());
     sendMessage.setReplyMarkup(replyKeyboardMarkup);
@@ -154,7 +180,7 @@ public class General {
     exploreDeck.setText(General.getExploreDeckCommand(language));
 
     KeyboardButton menu = new KeyboardButton();
-    menu.setText("MENU");
+    menu.setText(General.getMenuCommand(language));
 
     row.add(createDeck);
     row.add(deleteDeck);
@@ -186,7 +212,7 @@ public class General {
     studyDeck.setText(General.getStudyDeckCommand(language));
 
     KeyboardButton menu = new KeyboardButton();
-    menu.setText("MENU");
+    menu.setText(General.getMenuCommand(language));
 
     row.add(createCard);
     row.add(deleteCard);
@@ -197,10 +223,6 @@ public class General {
 
     keyboardMarkup.setKeyboard(keyboard);
     return keyboardMarkup;
-  }
-
-  public static String getMyDeckCommand(String language) {
-    return String.format(LocalisationService.getString("my_deck", language));
   }
 
   public static boolean isCommandForOther(String text) {
@@ -236,6 +258,7 @@ public class General {
     SendMessage sendMessage = new SendMessage();
     sendMessage.setChatId(user.getTelegramId());
     sendMessage.setText(text.isEmpty() ? "EMPTY" : text);
+    sendMessage.setReplyMarkup(getExploreDeckKeyboard("en"));
     return sendMessage;
   }
 }
