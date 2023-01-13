@@ -8,19 +8,14 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.context.ApplicationContext;
-import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.context.junit4.SpringRunner;
-import com.aceliq.frankfurt.components.BotHandler;
 import com.aceliq.frankfurt.database.CardRepository;
 import com.aceliq.frankfurt.database.DeckRepository;
 import com.aceliq.frankfurt.models.Card;
 import com.aceliq.frankfurt.models.Deck;
 
 @RunWith(SpringRunner.class)
-@SpringBootTest
+@DataJpaTest
 public class CardRepositoryIntegrationTest {
   
   @Autowired
@@ -41,10 +36,10 @@ public class CardRepositoryIntegrationTest {
   
   @Test
   public void whenFindByDeck_thenReturnListOfCards() {
-    
+   
     Deck deck = new Deck();
     deck.setName("testDeck");
-    deck.setId(22);
+    deckRepository.save(deck);
     
     Card card1 = new Card();
     card1.setFront("test");
