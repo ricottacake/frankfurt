@@ -13,5 +13,6 @@ import com.aceliq.frankfurt.models.User;
 public interface DeckRepository extends CrudRepository<Deck, Integer>  {
   List<Deck> findByOwner(User owner);
   Optional<Deck> findByOwnerAndName(User owner, String name);
+  
   List<Deck> removeByNameAndOwner(String name, User owner);
 }

@@ -51,7 +51,6 @@ public class AppConfig {
 
   @Bean
   public DataSource userDataSource() {
-    System.out.println(System.getenv("DATASOURCE_URL"));
     DriverManagerDataSource dataSource = new DriverManagerDataSource();
     dataSource.setUrl(System.getenv("DATASOURCE_URL"));
     dataSource.setUsername(System.getenv("DATASOURCE_USERNAME"));

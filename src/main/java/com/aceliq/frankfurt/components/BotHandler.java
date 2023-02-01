@@ -15,7 +15,9 @@ import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
 import com.aceliq.frankfurt.database.UserRepository;
+import com.aceliq.frankfurt.exceptions.DeckAlreadyExistsException;
 import com.aceliq.frankfurt.database.CardRepository;
+import com.aceliq.frankfurt.database.DeckDaoImpl;
 import com.aceliq.frankfurt.database.DeckRepository;
 import com.aceliq.frankfurt.models.User;
 import com.aceliq.frankfurt.models.UserState;
@@ -41,14 +43,16 @@ public class BotHandler extends TelegramLongPollingBot {
   private UserRepository userRepository;
   private DeckRepository deckRepository;
   private StudyDeck studyDeck;
+  private DeckDaoImpl deckDaoImpl;
 
   public BotHandler(ApplicationContext context, CardRepository wordRepository,
-      UserRepository userRepository, DeckRepository deckRepository, StudyDeck studyDeck) {
+      UserRepository userRepository, DeckRepository deckRepository, StudyDeck studyDeck, DeckDaoImpl deckDaoImpl) {
     this.context = context;
     this.cardRepository = wordRepository;
     this.userRepository = userRepository;
     this.deckRepository = deckRepository;
     this.studyDeck = studyDeck;
+    this.deckDaoImpl = deckDaoImpl;
   }
 
   @Override
@@ -135,15 +139,24 @@ public class BotHandler extends TelegramLongPollingBot {
 
     switch (state) {
       case CREATE_DECK_NAME:
-        Deck newDeck = createDeck(message.getText(), user);
-        userDeckState.put(user.getTelegramId(), newDeck);
+        try {
+          deckDaoImpl.createDeckByNameAndOwner(message.getText(), user);
+        } catch(DeckAlreadyExistsException e) {
+          forExecute.add(General.getDeckExistMessage(user));
+          break;
+        }
         userState.put(user.getTelegramId(), UserState.DECKMENU);
         forExecute.add(General.getSuccessMessage(user));
         forExecute.add(
             General.onDeckMenuChoosen(message, user, language, deckRepository.findByOwner(user)));
         break;
       case DELETE_DECK_NAME:
-        deleteDeck(message.getText(), user);
+        try {
+          deckDaoImpl.removeByNameAndOwner(message.getText(), user);
+        } catch(DeckAlreadyExistsException e) {
+          forExecute.add(General.getDeckNotExistMessage(user));
+          break;
+        }
         userState.put(user.getTelegramId(), UserState.DECKMENU);
         forExecute.add(General.getSuccessMessage(user));
         forExecute.add(
@@ -251,18 +264,6 @@ public class BotHandler extends TelegramLongPollingBot {
 
   public void deleteCard(String front, Deck deck) {
     cardRepository.removeByFrontAndDeck(front, deck);
-  }
-
-  public Deck createDeck(String deckName, User owner) {
-    Deck deck = context.getBean(Deck.class);
-    deck.setName(deckName);
-    deck.setOwner(owner);
-    deckRepository.save(deck);
-    return deck;
-  }
-
-  public void deleteDeck(String deckName, User owner) {
-    deckRepository.removeByNameAndOwner(deckName, owner);
   }
 
   public SendMessage exploreDeck(String deckName, User user) {
