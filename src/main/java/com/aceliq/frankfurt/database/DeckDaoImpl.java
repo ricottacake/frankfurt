@@ -1,5 +1,7 @@
 package com.aceliq.frankfurt.database;
 
+import java.util.List;
+import java.util.Optional;
 import javax.persistence.EntityManager;
 import javax.persistence.NoResultException;
 import javax.persistence.PersistenceContext;
@@ -9,6 +11,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import com.aceliq.frankfurt.exceptions.DeckAlreadyExistsException;
+import com.aceliq.frankfurt.models.Deck;
 import com.aceliq.frankfurt.models.User;
 
 @Component
@@ -50,5 +53,22 @@ public class DeckDaoImpl implements DeckDao {
     } catch(PersistenceException e) {
       throw new DeckAlreadyExistsException("ok");
     }
+  }
+
+  @Override
+  @SuppressWarnings(value = "unchecked")
+  public List<Deck> getDecks(User owner) {
+    Query query = entityManager.createQuery("SELECT a FROM Deck a WHERE owner = ?1", Deck.class);
+    query.setParameter(1, owner);
+    return query.getResultList();
+  }
+
+  @Override
+  public Optional<Deck> getDeck(User owner, String name) {
+    Query query = entityManager.createQuery("SELECT a FROM Deck a WHERE owner = ?1 AND name = ?2", Deck.class);
+    query.setParameter(1, owner);
+    query.setParameter(2, name);
+    Deck y = (Deck) query.getSingleResult();
+    return Optional.ofNullable(y);
   }
 }

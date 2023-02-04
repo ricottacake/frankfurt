@@ -16,7 +16,7 @@ import javax.persistence.UniqueConstraint;
 public class Deck {
   
   @Id
-  @GeneratedValue(strategy = GenerationType.IDENTITY)
+  @GeneratedValue(strategy = GenerationType.SEQUENCE)
   private int id;
   
   private String name;

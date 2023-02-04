@@ -284,7 +284,7 @@ public class General {
     
     for(int i = 0; i < cards.size(); i++) {
       text += i + 1;
-      text += "\\. ";
+      text += ". ";
       text += cards.get(i).getFront();
       text += " : ";
       text += cards.get(i).getBack();

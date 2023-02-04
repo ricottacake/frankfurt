@@ -1,5 +1,6 @@
 package com.aceliq.frankfurt.components;
 
+import java.time.Instant;
 import javax.sql.DataSource;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
@@ -27,12 +28,18 @@ public class AppConfig {
   public Deck deck() {
     return new Deck();
   }
-
+  
+  @Scope(value = "prototype")
   @Bean
-  public User user() {
-    return new User();
+  public User user(long telegramId, String language) {
+    User user = new User();
+    user.setTelegramId(telegramId);
+    user.setLanguage(language);
+    user.setJoinDate(Instant.now().getEpochSecond());
+    return user;
   }
-
+  
+  @Scope(value = "prototype")
   @Bean
   public Card card() {
     return new Card();

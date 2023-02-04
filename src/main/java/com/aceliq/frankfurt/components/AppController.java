@@ -9,8 +9,8 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RestController;
 import com.aceliq.frankfurt.dao.ApiKeyDaoImpl;
-import com.aceliq.frankfurt.database.DeckRepository;
-import com.aceliq.frankfurt.database.UserRepository;
+import com.aceliq.frankfurt.database.DeckDaoImpl;
+import com.aceliq.frankfurt.database.UserDaoImpl;
 import com.aceliq.frankfurt.exceptions.ResourceNotFoundException;
 import com.aceliq.frankfurt.models.Deck;
 
@@ -19,13 +19,13 @@ import com.aceliq.frankfurt.models.Deck;
 public class AppController {
 
   @Autowired
-  DeckRepository deckRepository;
-
-  @Autowired
-  UserRepository userRepository;
+  UserDaoImpl userDaoImpl;
 
   @Autowired
   ApiKeyDaoImpl apiKeyRepository;
+  
+  @Autowired
+  DeckDaoImpl deckDaoImpl;
 
   @GetMapping("/api/v1/{apiKey}/decks")
   public ResponseEntity<List<Deck>> getDecks(@PathVariable("apiKey") String apiKey) {
@@ -35,7 +35,7 @@ public class AppController {
     if (key.equals(apiKeyRepository.getKeyByTelegramId(telegramId)
         .orElseThrow(() -> new ResourceNotFoundException("d")))) {
       return new ResponseEntity<>(
-          deckRepository.findByOwner(userRepository.findById(telegramId).get()), HttpStatus.OK);
+          deckDaoImpl.getDecks(userDaoImpl.findById(telegramId).get()), HttpStatus.OK);
     } else {
       throw new ResourceNotFoundException("d");
     }

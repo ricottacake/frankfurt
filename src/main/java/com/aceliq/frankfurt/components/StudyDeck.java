@@ -13,7 +13,7 @@ import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
-import com.aceliq.frankfurt.database.CardRepository;
+import com.aceliq.frankfurt.database.CardDaoImpl;
 import com.aceliq.frankfurt.models.Card;
 import com.aceliq.frankfurt.models.Deck;
 import com.aceliq.frankfurt.models.TimeIsOver;
@@ -27,16 +27,16 @@ public class StudyDeck {
   private HashMap<Long, ScheduledFuture<?>> userFuture = new HashMap<>();
 
   private ApplicationContext context;
-  private CardRepository cardRepository;
+  private CardDaoImpl cardDaoImpl;
   private ThreadPoolTaskScheduler taskScheduler;
   private BotHandler botHandler;
 
-  public StudyDeck(ApplicationContext context, CardRepository wordRepository,
-      ThreadPoolTaskScheduler taskScheduler, @Lazy BotHandler botHandler) {
+  public StudyDeck(ApplicationContext context,
+      ThreadPoolTaskScheduler taskScheduler, @Lazy BotHandler botHandler, CardDaoImpl cardDaoImpl) {
     this.context = context;
-    this.cardRepository = wordRepository;
     this.taskScheduler = taskScheduler;
     this.botHandler = botHandler;
+    this.cardDaoImpl = cardDaoImpl;
   }
 
   public void nextCard(User user) {
@@ -101,7 +101,7 @@ public class StudyDeck {
   }
 
   public void start(Deck deck) {
-    List<Card> cards = cardRepository.findByDeck(deck);
+    List<Card> cards = cardDaoImpl.getCards(deck);
     Collections.shuffle(cards);
     userTable.put(deck.getOwner().getTelegramId(), new ArrayDeque<Card>(cards));
     nextCard(deck.getOwner());
