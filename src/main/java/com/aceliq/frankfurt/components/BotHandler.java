@@ -232,7 +232,7 @@ public class BotHandler extends TelegramLongPollingBot {
           forExecute = General.onDeleteCardChoosen(message, user);
         } else if (message.getText().equals(General.getStudyDeckCommand(language))) {
           userState.put(user.getTelegramId(), UserState.LEARN);
-          studyDeck(deck);
+          studyDeck.start(deck);
         } else if (message.getText().equals(General.getMenuCommand(language))) {
           userState.put(user.getTelegramId(), UserState.MAINMENU);
           forExecute.add(General.onBackMenuChoosen(message, user));
@@ -257,10 +257,6 @@ public class BotHandler extends TelegramLongPollingBot {
     List<Card> cards = cardDaoImpl.getCards(deck.get());
     deckBuffer.put(user.getTelegramId(), cards);
     return General.convertDeckListToMessage(cards, user);
-  }
-
-  public void studyDeck(Deck deck) {
-    studyDeck.start(deck);
   }
 
   @Override

@@ -19,10 +19,12 @@ import com.aceliq.frankfurt.models.Deck;
 import com.aceliq.frankfurt.models.TimeIsOver;
 import com.aceliq.frankfurt.models.User;
 import com.aceliq.frankfurt.models.UserState;
+import com.aceliq.frankfurt.util.General;
 
 @Component
 public class StudyDeck {
 
+  private HashMap<Long, List<Card>> userTableInit = new HashMap<>();
   private HashMap<Long, ArrayDeque<Card>> userTable = new HashMap<>();
   private HashMap<Long, ScheduledFuture<?>> userFuture = new HashMap<>();
 
@@ -31,8 +33,8 @@ public class StudyDeck {
   private ThreadPoolTaskScheduler taskScheduler;
   private BotHandler botHandler;
 
-  public StudyDeck(ApplicationContext context,
-      ThreadPoolTaskScheduler taskScheduler, @Lazy BotHandler botHandler, CardDaoImpl cardDaoImpl) {
+  public StudyDeck(ApplicationContext context, ThreadPoolTaskScheduler taskScheduler,
+      @Lazy BotHandler botHandler, CardDaoImpl cardDaoImpl) {
     this.context = context;
     this.taskScheduler = taskScheduler;
     this.botHandler = botHandler;
@@ -45,10 +47,15 @@ public class StudyDeck {
       return;
     }
 
-    SendMessage message = new SendMessage();
-    message.setText(userTable.get(user.getTelegramId()).getFirst().getFront());
-    message.setChatId(user.getTelegramId());
+    String[] options = new String[4];
+    options[0] = General.getRandomBackNameFromList(userTableInit.get(user.getTelegramId()));
+    options[1] = General.getRandomBackNameFromList(userTableInit.get(user.getTelegramId()));
+    options[2] = General.getRandomBackNameFromList(userTableInit.get(user.getTelegramId()));
+    options[3] = General.getRandomBackNameFromList(userTableInit.get(user.getTelegramId()));
 
+    SendMessage message = General.getQuestionMessage(user,
+        userTable.get(user.getTelegramId()).getFirst().getFront(), options);
+    
     try {
       botHandler.execute(message);
     } catch (TelegramApiException e) {
@@ -104,6 +111,7 @@ public class StudyDeck {
     List<Card> cards = cardDaoImpl.getCards(deck);
     Collections.shuffle(cards);
     userTable.put(deck.getOwner().getTelegramId(), new ArrayDeque<Card>(cards));
+    userTableInit.put(deck.getOwner().getTelegramId(), cards);
     nextCard(deck.getOwner());
   }
 }
