@@ -208,6 +208,7 @@ public class General {
 
     KeyboardButton option0 = new KeyboardButton();
     option0.setText(options[0]);
+    
     KeyboardButton option1 = new KeyboardButton();
     option1.setText(options[1]);
     
