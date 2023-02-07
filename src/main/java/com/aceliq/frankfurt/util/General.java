@@ -212,6 +212,7 @@ public class General {
     KeyboardButton option1 = new KeyboardButton();
     option1.setText(options[1]);
     
+    
     row1.add(option0);
     row1.add(option1);
 
