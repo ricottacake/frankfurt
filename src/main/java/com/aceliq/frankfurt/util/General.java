@@ -202,7 +202,7 @@ public class General {
     return keyboardMarkup;
   }
 
-  public static SendMessage onBackMenuChoosen(Message message, User user) {
+  public static SendMessage onBackMenuChoosen(User user) {
     ReplyKeyboardMarkup replyKeyboardMarkup = getMainMenuKeyboard(user.getLanguage());
     SendMessage sendMessage = new SendMessage();
     sendMessage.setChatId(user.getTelegramId());
@@ -320,7 +320,7 @@ public class General {
     return text.startsWith("/") && !isSimpleCommand && !isCommandForMe;
   }
 
-  public static SendMessage onDeckMenuChoosen(Message message, User user, String language,
+  public static SendMessage onDeckMenuChoosen(User user, String language,
       List<Deck> result) {
     ReplyKeyboardMarkup replyKeyboardMarkup = General.getDeckMenuKeyboard(language);
 
@@ -329,7 +329,7 @@ public class General {
         .collect(Collectors.joining("\n"));
 
     SendMessage sendMessage = new SendMessage();
-    sendMessage.setChatId(message.getChatId());
+    sendMessage.setChatId(user.getTelegramId());
     sendMessage.setParseMode("MarkdownV2");
     sendMessage.setText(x.isEmpty() ? (LocalisationService.getString("there_is_nothing_here", user.getLanguage())) : x);
     sendMessage.setReplyMarkup(replyKeyboardMarkup);
