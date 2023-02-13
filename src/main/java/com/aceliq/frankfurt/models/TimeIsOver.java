@@ -16,7 +16,7 @@ public class TimeIsOver implements Runnable {
 
   @Override
   public void run() {
-    context.getBean(StudyDeck.class).removeFirst(user);
+    //context.getBean(StudyDeck.class).removeFirst(user);
     context.getBean(StudyDeck.class).nextCard(user);
   }
 }

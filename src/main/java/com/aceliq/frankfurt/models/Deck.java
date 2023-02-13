@@ -2,6 +2,7 @@ package com.aceliq.frankfurt.models;
 
 import java.util.List;
 import javax.persistence.Entity;
+import javax.persistence.FetchType;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
@@ -25,9 +26,15 @@ public class Deck {
   @JoinColumn(name="user_id")
   private User owner;
   
-  @OneToMany(mappedBy="id")
+  @OneToMany(mappedBy="deck", fetch = FetchType.EAGER)
   private List<Card> cards;
   
+  public List<Card> getCards() {
+    return cards;
+  }
+  public void setCards(List<Card> cards) {
+    this.cards = cards;
+  }
   public int getId() {
     return id;
   }

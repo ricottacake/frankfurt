@@ -5,6 +5,7 @@ import java.util.Arrays;
 import java.util.Calendar;
 import java.util.List;
 import java.util.TimeZone;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
@@ -100,14 +101,29 @@ public class General {
     return sendMessage;
   }
   
-  public static String getRandomBackNameFromList(List<Card> cards) {
+  public static Card getRandomCardFromList(List<Card> cards) {
     int size = cards.size();
     int random = getRandomNumber(0, size);
     Card card = cards.get(random);
-    return card.getBack();
+    return card;
   }
   
-  public static SendMessage getQuestionMessage(User user, String word, String[] options) {
+  public static List<Card> getAnswers(List<Card> l, Card card) {
+    int[] a = ThreadLocalRandom
+        .current()
+        .ints(0, l.size())
+        .distinct()
+        .limit(3)
+        .toArray();
+    List<Card> result = new ArrayList<>();
+    result.add(card);
+    for(int c : a) {
+      result.add(l.get(c));
+    }
+    return result;
+   }
+  
+  public static SendMessage getQuestionMessage(User user, String word, List<Card> options) {
     SendMessage sendMessage = new SendMessage();
     sendMessage.setChatId(user.getTelegramId());
     sendMessage.setReplyMarkup(getQuestionOptionsKeyboard(options));
@@ -195,7 +211,7 @@ public class General {
     return sendMessage;
   }
   
-  public static ReplyKeyboardMarkup getQuestionOptionsKeyboard(String[] options) {
+  public static ReplyKeyboardMarkup getQuestionOptionsKeyboard(List<Card> options) {
 
     ReplyKeyboardMarkup keyboardMarkup = new ReplyKeyboardMarkup();
     keyboardMarkup.setResizeKeyboard(true);
@@ -207,20 +223,20 @@ public class General {
     KeyboardRow row2 = new KeyboardRow();
 
     KeyboardButton option0 = new KeyboardButton();
-    option0.setText(options[0]);
+    option0.setText(options.get(0).getBack());
     
     KeyboardButton option1 = new KeyboardButton();
-    option1.setText(options[1]);
+    option1.setText(options.get(1).getBack());
     
     
     row1.add(option0);
     row1.add(option1);
 
     KeyboardButton option2 = new KeyboardButton();
-    option2.setText(options[2]);
+    option2.setText(options.get(2).getBack());
 
     KeyboardButton option3 = new KeyboardButton();
-    option3.setText(options[3]);
+    option3.setText(options.get(3).getBack());
 
     row2.add(option2);
     row2.add(option3);
