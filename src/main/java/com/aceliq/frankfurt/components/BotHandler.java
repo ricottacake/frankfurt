@@ -208,8 +208,7 @@ public class BotHandler extends TelegramLongPollingBot {
         userState.put(telegramId, UserState.EXPLORE_DECK_MENU);
         try {
           cardDaoImpl.createCard(card);
-        } catch (DeckAlreadyExistsException e) {
-        }
+        } catch (DeckAlreadyExistsException e) {}
         forExecute.add(General.getSuccessMessage(user));
         forExecute.add(goToExploreDeckMenu(deck, user));
         break;

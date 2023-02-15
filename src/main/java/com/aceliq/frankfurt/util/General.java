@@ -41,6 +41,10 @@ public class General {
   public static String getMyDecksCommand(String language) {
     return String.format(LocalisationService.getString("my_decks", language));
   }
+  
+  public static String getBackCommand(String language) {
+    return String.format(LocalisationService.getString("back", language));
+  }
 
   public static String getSettingsCommand(String language) {
     return String.format(LocalisationService.getString("settings", language));
@@ -220,7 +224,8 @@ public class General {
     keyboardMarkup.setSelective(true);
 
     List<KeyboardRow> keyboard = new ArrayList<>();
-    KeyboardRow row = new KeyboardRow();
+    
+    KeyboardRow row1 = new KeyboardRow();
 
     KeyboardButton createDeck = new KeyboardButton();
     createDeck.setText(General.getCreateDeckCommand(language));
@@ -234,12 +239,20 @@ public class General {
     KeyboardButton menu = new KeyboardButton();
     menu.setText(General.getMenuCommand(language));
 
-    row.add(createDeck);
-    row.add(deleteDeck);
-    row.add(exploreDeck);
-    row.add(menu);
+    row1.add(createDeck);
+    row1.add(deleteDeck);
+    row1.add(exploreDeck);
+    row1.add(menu);
+    
+    KeyboardRow row2 = new KeyboardRow();
+    
+    KeyboardButton back = new KeyboardButton();
+    back.setText(General.getBackCommand(language));
+    
+    row2.add(back);
 
-    keyboard.add(row);
+    keyboard.add(row1);
+    keyboard.add(row2);
 
     keyboardMarkup.setKeyboard(keyboard);
     return keyboardMarkup;
@@ -252,7 +265,8 @@ public class General {
     keyboardMarkup.setSelective(true);
 
     List<KeyboardRow> keyboard = new ArrayList<>();
-    KeyboardRow row = new KeyboardRow();
+    
+    KeyboardRow row1 = new KeyboardRow();
 
     KeyboardButton createCard = new KeyboardButton();
     createCard.setText(General.getCreateCardCommand(language));
@@ -266,12 +280,20 @@ public class General {
     KeyboardButton menu = new KeyboardButton();
     menu.setText(General.getMenuCommand(language));
 
-    row.add(createCard);
-    row.add(deleteCard);
-    row.add(studyDeck);
-    row.add(menu);
+    row1.add(createCard);
+    row1.add(deleteCard);
+    row1.add(studyDeck);
+    row1.add(menu);
+    
+    KeyboardRow row2 = new KeyboardRow();
+    
+    KeyboardButton back = new KeyboardButton();
+    back.setText(General.getBackCommand(language));
+    
+    row2.add(back);
 
-    keyboard.add(row);
+    keyboard.add(row1);
+    keyboard.add(row2);
 
     keyboardMarkup.setKeyboard(keyboard);
     return keyboardMarkup;
