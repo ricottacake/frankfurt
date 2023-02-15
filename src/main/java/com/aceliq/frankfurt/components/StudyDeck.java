@@ -80,10 +80,11 @@ public class StudyDeck {
     message.setText("That's all");
     message.setChatId(user.getTelegramId());
 
-    botHandler.setUserState(user, UserState.EXPLORE_DECK_MENU);
-
     try {
       botHandler.execute(message);
+      botHandler.setUserState(user, UserState.EXPLORE_DECK_MENU);
+      botHandler.execute(
+          botHandler.goToExploreDeckMenu(botHandler.getUserDeckState(user.getTelegramId()), user));
     } catch (TelegramApiException e) {
       e.printStackTrace();
     }
@@ -94,17 +95,15 @@ public class StudyDeck {
   }
 
   public void checkWord(User user, Message message) {
-    String expectedWord = userTableInit.get(user.getTelegramId()).get(userPointers.get(user.getTelegramId()) - 1)
-            .getBack();
-    SendMessage answer = new SendMessage();
-    answer.setChatId(message.getChatId());
-    if (message.getText().equals(expectedWord)) {
-      answer.setText("Right");
-    } else {
-      answer.setText("Not right");
-    }
+    String expectedWord = userTableInit.get(user.getTelegramId())
+        .get(userPointers.get(user.getTelegramId()) - 1).getBack();
+    
     try {
-      botHandler.execute(answer);
+      if (message.getText().equals(expectedWord)) {
+        botHandler.execute(General.getRightMessage(user));
+      } else {
+        botHandler.execute(General.getNoRightMessage(user));
+      }
     } catch (TelegramApiException e) {
       e.printStackTrace();
     }

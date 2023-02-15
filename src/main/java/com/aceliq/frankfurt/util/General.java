@@ -5,11 +5,10 @@ import java.util.Arrays;
 import java.util.Calendar;
 import java.util.List;
 import java.util.TimeZone;
-import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
-import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboardMarkup;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.KeyboardButton;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.KeyboardRow;
@@ -19,13 +18,6 @@ import com.aceliq.frankfurt.models.User;
 
 public class General {
 
-  public static String convertListOfWordsToString(List<Card> listOfWords) {
-    String result = "";
-    for (int i = 0; i < listOfWords.size(); i++)
-      result = result + listOfWords.get(i).getBack() + " - " + listOfWords.get(i).getFront() + "\n";
-    return result;
-  }
-
   public static long getUnixTimeInSeconds() {
     TimeZone timeZone = TimeZone.getTimeZone("GMT");
     Calendar startDay = Calendar.getInstance(timeZone);
@@ -34,6 +26,16 @@ public class General {
 
   public static int getRandomNumber(int min, int max) {
     return (int) ((Math.random() * (max - min)) + min);
+  }
+
+  /***********************************************************************************************************/
+
+  public static String getGoToMenu(String language) {
+    return String.format(LocalisationService.getString("you_are_in_main_menu", language));
+  }
+
+  public static String getStartResponse(String language) {
+    return String.format(LocalisationService.getString("start_message", language));
   }
 
   public static String getMyDecksCommand(String language) {
@@ -68,149 +70,112 @@ public class General {
     return String.format(LocalisationService.getString("explore_deck_command", language));
   }
 
+  public static String getCreateDeckCommandResponse(String language) {
+    return String.format(LocalisationService.getString("enter_name_for_new_deck", language));
+  }
+
+  public static String getViewDeckCommandResponse(String language) {
+    return String.format(LocalisationService.getString("enter_name_for_view_deck", language));
+  }
+
+  public static String getDeleteDeckCommandResponse(String language) {
+    return String.format(LocalisationService.getString("enter_name_for_delete_deck", language));
+  }
+
+  public static String getSuccessResponse(String language) {
+    return String.format(LocalisationService.getString("success", language));
+  }
+
   public static String getMenuCommand(String language) {
     return String.format(LocalisationService.getString("menu", language));
   }
 
-  public static SendMessage getSuccessMessage(User user) {
-    SendMessage sendMessage = new SendMessage();
-    sendMessage.setChatId(user.getTelegramId());
-    sendMessage.setText(LocalisationService.getString("success", user.getLanguage()));
-    return sendMessage;
+  public static String getEnterBackCardNameResponse(String language) {
+    return String.format(LocalisationService.getString("enter_back_card_message", language));
   }
 
-  public static SendMessage getDeckExistMessage(User user) {
-    SendMessage sendMessage = new SendMessage();
-    sendMessage.setChatId(user.getTelegramId());
-    sendMessage.setText(LocalisationService.getString("deck_exist", user.getLanguage()));
-    return sendMessage;
+  public static String getDeckExistResponse(String language) {
+    return String.format(LocalisationService.getString("deck_exist", language));
   }
 
-  public static SendMessage getDeckNotExistMessage(User user) {
-    SendMessage sendMessage = new SendMessage();
-    sendMessage.setChatId(user.getTelegramId());
-    sendMessage.setText(LocalisationService.getString("deck_not_exist", user.getLanguage()));
-    return sendMessage;
+  public static String getDeckNotExistResponse(String language) {
+    return String.format(LocalisationService.getString("deck_not_exist", language));
   }
 
-  public static SendMessage getEnterBackCardNameMessage(User user) {
-    SendMessage sendMessage = new SendMessage();
-    sendMessage.setChatId(user.getTelegramId());
-    sendMessage
-        .setText(LocalisationService.getString("enter_back_card_message", user.getLanguage()));
-    return sendMessage;
-  }
-  
-  public static Card getRandomCardFromList(List<Card> cards) {
-    int size = cards.size();
-    int random = getRandomNumber(0, size);
-    Card card = cards.get(random);
-    return card;
-  }
-  
-  public static List<Card> getAnswers(List<Card> l, Card card) {
-    int[] a = ThreadLocalRandom
-        .current()
-        .ints(0, l.size())
-        .distinct()
-        .limit(3)
-        .toArray();
-    List<Card> result = new ArrayList<>();
-    result.add(card);
-    for(int c : a) {
-      result.add(l.get(c));
-    }
-    return result;
-   }
-  
-  public static SendMessage getQuestionMessage(User user, String word, List<Card> options) {
-    SendMessage sendMessage = new SendMessage();
-    sendMessage.setChatId(user.getTelegramId());
-    sendMessage.setReplyMarkup(getQuestionOptionsKeyboard(options));
-    sendMessage.setText(word);
-    return sendMessage;
+  public static String getEnterCardSequenceNumber(String language) {
+    return String.format(LocalisationService.getString("enter_card_sequence_number", language));
   }
 
-  public static List<SendMessage> onCreateDeckChoosen(Message message, User user) {
+  public static String getMessageThereIsNothingHere(String language) {
+    return String.format(LocalisationService.getString("there_is_nothing_here", language));
+  }
+
+  /***********************************************************************************************************/
+
+  public static List<SendMessage> onCreateDeckChoosen(User user) {
     SendMessage sendMessage = new SendMessage();
-    sendMessage.setChatId(message.getChatId());
-    sendMessage
-        .setText(LocalisationService.getString("enter_name_for_new_deck", user.getLanguage()));
+    sendMessage.setChatId(user.getTelegramId());
+    sendMessage.setText(getCreateDeckCommandResponse(user.getLanguage()));
     return Arrays.asList(sendMessage);
   }
 
-  public static List<SendMessage> onViewDeckChoosen(Message message, User user) {
+  public static List<SendMessage> onViewDeckChoosen(User user, List<Deck> decks) {
     SendMessage sendMessage = new SendMessage();
-    sendMessage.setChatId(message.getChatId());
-    sendMessage
-        .setText(LocalisationService.getString("enter_name_for_view_deck", user.getLanguage()));
+    sendMessage.setChatId(user.getTelegramId());
+    sendMessage.setText(getViewDeckCommandResponse(user.getLanguage()));
+    sendMessage.setReplyMarkup(getDeckOptionsKeyboard(decks));
     return Arrays.asList(sendMessage);
   }
 
-  public static List<SendMessage> onDeleteDeckChoosen(Message message, User user) {
+  public static List<SendMessage> onDeleteDeckChoosen(User user) {
     SendMessage sendMessage = new SendMessage();
-    sendMessage.setChatId(message.getChatId());
-    sendMessage
-        .setText(LocalisationService.getString("enter_name_for_delete_deck", user.getLanguage()));
+    sendMessage.setChatId(user.getTelegramId());
+    sendMessage.setText(getDeleteDeckCommandResponse(user.getLanguage()));
     return Arrays.asList(sendMessage);
   }
 
-  public static List<SendMessage> onCreateCardChoosen(Message message, User user) {
+  /***********************************************************************************************************/
+
+  public static List<SendMessage> onCreateCardChoosen(User user) {
     SendMessage sendMessage = new SendMessage();
-    sendMessage.setChatId(message.getChatId());
+    sendMessage.setChatId(user.getTelegramId());
     sendMessage.setText(LocalisationService.getString("enter_front_name", user.getLanguage()));
     return Arrays.asList(sendMessage);
   }
 
-  public static List<SendMessage> onDeleteCardChoosen(Message message, User user) {
+  public static List<SendMessage> onDeleteCardChoosen(User user) {
     SendMessage sendMessage = new SendMessage();
-    sendMessage.setChatId(message.getChatId());
-    sendMessage.setText(LocalisationService.getString("enter_card_sequence_number", user.getLanguage()));
+    sendMessage.setChatId(user.getTelegramId());
+    sendMessage.setText(getEnterCardSequenceNumber(user.getLanguage()));
     return Arrays.asList(sendMessage);
   }
 
-  public static SendMessage onStart(Message message, User user) {
-    SendMessage sendMessage = new SendMessage();
-    sendMessage.setChatId(message.getChatId());
-    sendMessage.setText("Hello!\n"
-        + "This bot will help you learn foreign words with the help of flashcards. You can create a large number of decks of cards and add cards to them with a specific phrase and translation into your own language. In addition, the bot allows you to check how well you learned this deck of cards, to select a deck and click \"Check me!\" the number of correct answers.");
-    sendMessage.setReplyMarkup(getMainMenuKeyboard(user.getLanguage().toString()));
-    return sendMessage;
-  }
+  /***********************************************************************************************************/
 
-  public static ReplyKeyboardMarkup getMainMenuKeyboard(String language) {
+  public static ReplyKeyboardMarkup getDeckOptionsKeyboard(List<Deck> options) {
+
     ReplyKeyboardMarkup keyboardMarkup = new ReplyKeyboardMarkup();
     keyboardMarkup.setResizeKeyboard(true);
-    keyboardMarkup.setOneTimeKeyboard(true);
     keyboardMarkup.setSelective(true);
 
     List<KeyboardRow> keyboard = new ArrayList<>();
-    KeyboardRow row = new KeyboardRow();
 
-    KeyboardButton myDecks = new KeyboardButton();
-    myDecks.setText(getMyDecksCommand(language));
+    var wrapper = new Object() {
+      KeyboardRow row = new KeyboardRow();
+    };
 
-    KeyboardButton settings = new KeyboardButton();
-    settings.setText(getSettingsCommand(language));
-
-    row.add(myDecks);
-    row.add(settings);
-
-    keyboard.add(row);
-
+    IntStream.range(0, options.size()).boxed().peek(e -> {
+      if (e % 3 == 0) {
+        keyboard.add(wrapper.row);
+        wrapper.row = new KeyboardRow();
+      }
+      wrapper.row.add(new KeyboardButton(options.get(e).getName()));
+    }).collect(Collectors.toList());
+    keyboard.add(wrapper.row);
     keyboardMarkup.setKeyboard(keyboard);
     return keyboardMarkup;
   }
 
-  public static SendMessage onBackMenuChoosen(User user) {
-    ReplyKeyboardMarkup replyKeyboardMarkup = getMainMenuKeyboard(user.getLanguage());
-    SendMessage sendMessage = new SendMessage();
-    sendMessage.setChatId(user.getTelegramId());
-    sendMessage.setReplyMarkup(replyKeyboardMarkup);
-    sendMessage.setText(LocalisationService.getString("you_are_in_main_menu", user.getLanguage()));
-    return sendMessage;
-  }
-  
   public static ReplyKeyboardMarkup getQuestionOptionsKeyboard(List<Card> options) {
 
     ReplyKeyboardMarkup keyboardMarkup = new ReplyKeyboardMarkup();
@@ -218,17 +183,17 @@ public class General {
     keyboardMarkup.setSelective(true);
 
     List<KeyboardRow> keyboard = new ArrayList<>();
-    
+
     KeyboardRow row1 = new KeyboardRow();
     KeyboardRow row2 = new KeyboardRow();
 
     KeyboardButton option0 = new KeyboardButton();
     option0.setText(options.get(0).getBack());
-    
+
     KeyboardButton option1 = new KeyboardButton();
     option1.setText(options.get(1).getBack());
-    
-    
+
+
     row1.add(option0);
     row1.add(option1);
 
@@ -252,7 +217,6 @@ public class General {
 
     ReplyKeyboardMarkup keyboardMarkup = new ReplyKeyboardMarkup();
     keyboardMarkup.setResizeKeyboard(true);
-    keyboardMarkup.setOneTimeKeyboard(true);
     keyboardMarkup.setSelective(true);
 
     List<KeyboardRow> keyboard = new ArrayList<>();
@@ -313,41 +277,128 @@ public class General {
     return keyboardMarkup;
   }
 
-  public static boolean isCommandForOther(String text) {
-    boolean isSimpleCommand = text.equals("/start") || text.equals("/help") || text.equals("/stop");
-    boolean isCommandForMe = text.equals("/start@weatherbot") || text.equals("/help@weatherbot")
-        || text.equals("/stop@weatherbot");
-    return text.startsWith("/") && !isSimpleCommand && !isCommandForMe;
+  public static ReplyKeyboardMarkup getMainMenuKeyboard(String language) {
+    ReplyKeyboardMarkup keyboardMarkup = new ReplyKeyboardMarkup();
+    keyboardMarkup.setResizeKeyboard(true);
+    keyboardMarkup.setSelective(true);
+
+    List<KeyboardRow> keyboard = new ArrayList<>();
+    KeyboardRow row = new KeyboardRow();
+
+    KeyboardButton myDecks = new KeyboardButton();
+    myDecks.setText(getMyDecksCommand(language));
+
+    KeyboardButton settings = new KeyboardButton();
+    settings.setText(getSettingsCommand(language));
+
+    row.add(myDecks);
+    row.add(settings);
+
+    keyboard.add(row);
+
+    keyboardMarkup.setKeyboard(keyboard);
+    return keyboardMarkup;
   }
 
-  public static SendMessage onDeckMenuChoosen(User user, String language,
-      List<Deck> result) {
-    ReplyKeyboardMarkup replyKeyboardMarkup = General.getDeckMenuKeyboard(language);
+  /***********************************************************************************************************/
 
-    String x = IntStream.range(1, result.size() + 1)
-        .mapToObj(i -> i + "\\. " + result.get(i - 1).getName())
+  public static SendMessage getDeckListMessage(User user, List<Card> cards) {
+
+    String x = IntStream.range(1, cards.size() + 1)
+        .mapToObj(
+            i -> i + "\\. " + cards.get(i - 1).getFront() + " : " + cards.get(i - 1).getBack())
         .collect(Collectors.joining("\n"));
 
     SendMessage sendMessage = new SendMessage();
     sendMessage.setChatId(user.getTelegramId());
     sendMessage.setParseMode("MarkdownV2");
-    sendMessage.setText(x.isEmpty() ? (LocalisationService.getString("there_is_nothing_here", user.getLanguage())) : x);
+    sendMessage.setText(x.isEmpty() ? (getMessageThereIsNothingHere(user.getLanguage())) : x);
+    sendMessage.setReplyMarkup(getExploreDeckKeyboard("en"));
+    return sendMessage;
+  }
+
+  public static SendMessage getSuccessMessage(User user) {
+    SendMessage sendMessage = new SendMessage();
+    sendMessage.setChatId(user.getTelegramId());
+    sendMessage.setText(LocalisationService.getString("success", user.getLanguage()));
+    return sendMessage;
+  }
+
+  public static SendMessage getDeckExistMessage(User user) {
+    SendMessage sendMessage = new SendMessage();
+    sendMessage.setChatId(user.getTelegramId());
+    sendMessage.setText(getDeckExistResponse(user.getLanguage()));
+    return sendMessage;
+  }
+
+  public static SendMessage getDeckNotExistMessage(User user) {
+    SendMessage sendMessage = new SendMessage();
+    sendMessage.setChatId(user.getTelegramId());
+    sendMessage.setText(getDeckNotExistResponse(user.getLanguage()));
+    return sendMessage;
+  }
+
+  public static SendMessage getEnterBackCardNameMessage(User user) {
+    SendMessage sendMessage = new SendMessage();
+    sendMessage.setChatId(user.getTelegramId());
+    sendMessage.setText(getEnterBackCardNameResponse(user.getLanguage()));
+    return sendMessage;
+  }
+
+  public static SendMessage getQuestionMessage(User user, String word, List<Card> options) {
+    SendMessage sendMessage = new SendMessage();
+    sendMessage.setChatId(user.getTelegramId());
+    sendMessage.setReplyMarkup(getQuestionOptionsKeyboard(options));
+    sendMessage.setText(word);
+    return sendMessage;
+  }
+
+  public static SendMessage getOnMenuMessage(User user) {
+    SendMessage sendMessage = new SendMessage();
+    sendMessage.setChatId(user.getTelegramId());
+    sendMessage.setReplyMarkup(getMainMenuKeyboard(user.getLanguage()));
+    sendMessage.setText(getGoToMenu(user.getLanguage()));
+    return sendMessage;
+  }
+
+  public static SendMessage getMyDeckMessage(User user, List<Deck> result) {
+    ReplyKeyboardMarkup replyKeyboardMarkup = General.getDeckMenuKeyboard(user.getLanguage());
+
+    String x = IntStream.range(1, result.size() + 1)
+        .mapToObj(i -> i + "\\. " + result.get(i - 1).getName()).collect(Collectors.joining("\n"));
+
+    SendMessage sendMessage = new SendMessage();
+    sendMessage.setChatId(user.getTelegramId());
+    sendMessage.setParseMode("MarkdownV2");
+    sendMessage.setText(x.isEmpty() ? (getMessageThereIsNothingHere(user.getLanguage())) : x);
     sendMessage.setReplyMarkup(replyKeyboardMarkup);
     return sendMessage;
   }
 
-  public static SendMessage convertDeckListToMessage(List<Card> cards, User user) {
-
-    String x = IntStream.range(1, cards.size() + 1)
-        .mapToObj(i -> i + "\\. " + cards.get(i - 1).getFront() + " : " + cards.get(i - 1).getBack())
-        .collect(Collectors.joining("\n"));
-
+  public static SendMessage getStartMessage(User user) {
     SendMessage sendMessage = new SendMessage();
     sendMessage.setChatId(user.getTelegramId());
-    sendMessage.setParseMode("MarkdownV2");
-    sendMessage.setText(x.isEmpty() ? (LocalisationService.getString("there_is_nothing_here", user.getLanguage())) : x);
-    sendMessage.setReplyMarkup(getExploreDeckKeyboard("en"));
+    sendMessage.setText(getStartResponse(user.getLanguage()));
+    sendMessage.setReplyMarkup(getMainMenuKeyboard(user.getLanguage().toString()));
     return sendMessage;
   }
-  
+
+  public static SendMessage getRightMessage(User user) {
+    SendMessage sendMessage = new SendMessage();
+    sendMessage.setChatId(user.getTelegramId());
+    sendMessage.setText("Right");
+    sendMessage.setReplyMarkup(getMainMenuKeyboard(user.getLanguage().toString()));
+    return sendMessage;
+  }
+
+  public static SendMessage getNoRightMessage(User user) {
+    SendMessage sendMessage = new SendMessage();
+    sendMessage.setChatId(user.getTelegramId());
+    sendMessage.setText("No Right.");
+    sendMessage.setReplyMarkup(getMainMenuKeyboard(user.getLanguage().toString()));
+    return sendMessage;
+  }
+
+  /***********************************************************************************************************/
+
 }
