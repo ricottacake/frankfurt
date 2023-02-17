@@ -10,6 +10,7 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboardMarkup;
+import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboardRemove;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.KeyboardButton;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.KeyboardRow;
 import com.aceliq.frankfurt.models.Card;
@@ -144,6 +145,7 @@ public class General {
     SendMessage sendMessage = new SendMessage();
     sendMessage.setChatId(user.getTelegramId());
     sendMessage.setText(LocalisationService.getString("enter_front_name", user.getLanguage()));
+    sendMessage.setReplyMarkup(new ReplyKeyboardRemove(true));
     return Arrays.asList(sendMessage);
   }
 
@@ -261,7 +263,6 @@ public class General {
   public static ReplyKeyboardMarkup getExploreDeckKeyboard(String language) {
     ReplyKeyboardMarkup keyboardMarkup = new ReplyKeyboardMarkup();
     keyboardMarkup.setResizeKeyboard(true);
-    keyboardMarkup.setOneTimeKeyboard(true);
     keyboardMarkup.setSelective(true);
 
     List<KeyboardRow> keyboard = new ArrayList<>();
@@ -334,8 +335,8 @@ public class General {
     SendMessage sendMessage = new SendMessage();
     sendMessage.setChatId(user.getTelegramId());
     sendMessage.setParseMode("MarkdownV2");
-    sendMessage.setText(x.isEmpty() ? (getMessageThereIsNothingHere(user.getLanguage())) : x);
     sendMessage.setReplyMarkup(getExploreDeckKeyboard("en"));
+    sendMessage.setText(x.isEmpty() ? (getMessageThereIsNothingHere(user.getLanguage())) : x);
     return sendMessage;
   }
 

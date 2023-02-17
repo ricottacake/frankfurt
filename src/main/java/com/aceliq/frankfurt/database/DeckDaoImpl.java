@@ -32,7 +32,7 @@ public class DeckDaoImpl implements DeckDao {
     } catch (NoResultException e) {
       throw new DeckAlreadyExistsException("ok");
     }
-
+    
     q = entityManager.createNativeQuery("DELETE FROM cards WHERE deck_id = ?");
     q.setParameter(1, i);
     q.executeUpdate();
