@@ -2,6 +2,7 @@ package com.aceliq.frankfurt.database;
 
 import java.util.Optional;
 import javax.persistence.EntityManager;
+import javax.persistence.NoResultException;
 import javax.persistence.PersistenceContext;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
@@ -16,7 +17,7 @@ public class UserDaoImpl implements UserDao {
 
   @PersistenceContext
   private EntityManager entityManager;
-  
+
   @Autowired
   private ApplicationContext context;
 
@@ -37,12 +38,11 @@ public class UserDaoImpl implements UserDao {
   @Override
   public User getOrCreate(long telegramId) {
     try {
-      return entityManager.find(User.class, telegramId);
-    } catch (IllegalArgumentException e) {
-      User user = context.getBean(User.class, telegramId);
-      user.setTelegramId(telegramId);
-      user.setLanguage("en");
-      user.setJoinDate(System.currentTimeMillis() / 1000);
+      return (User) entityManager.createQuery("FROM User u WHERE telegramId = ?1")
+          .setParameter(1, telegramId).getSingleResult();
+    } catch (NoResultException e) {
+      User user = context.getBean(User.class, telegramId, "en");
+      entityManager.persist(user);
       return user;
     }
   }
