@@ -1,5 +1,6 @@
 package com.aceliq.frankfurt.models;
 
+import java.util.Objects;
 import javax.persistence.CascadeType;
 import javax.persistence.Entity;
 import javax.persistence.FetchType;
@@ -66,5 +67,22 @@ public class Card {
 
   public void setFront(String front) {
     this.front = front;
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(id);
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj)
+      return true;
+    if (obj == null)
+      return false;
+    if (getClass() != obj.getClass())
+      return false;
+    Card other = (Card) obj;
+    return id == other.id;
   }
 }

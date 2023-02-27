@@ -7,6 +7,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
@@ -45,25 +47,18 @@ public class StudyDeck {
       return;
     }
 
-    int b = userTableInit.get(user.getTelegramId()).size();
-    int j = userPointers.get(user.getTelegramId());
+    Card w = userTableInit.get(user.getTelegramId()).get(userPointers.get(user.getTelegramId()));
+    List<Card> table = userTableInit.get(user.getTelegramId());
+    int pointer = userPointers.get(user.getTelegramId());
+    Collections.shuffle(table);
 
-    int[] others =
-        ThreadLocalRandom.current().ints(0, b).distinct().filter(n -> n != j).limit(3).toArray();
+    List<Card> d = Stream.concat(Stream.of(w), table.stream()).distinct().limit(4)
+        .collect(Collectors.toList());
 
-    Card card0 = userTableInit.get(user.getTelegramId()).get(others[0]);
-    Card card1 = userTableInit.get(user.getTelegramId()).get(others[1]);
-    Card card2 = userTableInit.get(user.getTelegramId()).get(others[2]);
-    Card card3 =
-        userTableInit.get(user.getTelegramId()).get(userPointers.get(user.getTelegramId()));
+    Collections.shuffle(d);
 
-    List<Card> u = Arrays.asList(card0, card1, card2, card3);
-
-    Collections.shuffle(u);
-
-    SendMessage message = General.getQuestionMessage(user, userTableInit.get(user.getTelegramId())
-        .get(userPointers.get(user.getTelegramId())).getFront(), u);
-    userPointers.put(user.getTelegramId(), userPointers.get(user.getTelegramId()) + 1);
+    SendMessage message = General.getQuestionMessage(user, table.get(pointer).getFront(), d);
+    userPointers.put(user.getTelegramId(), pointer + 1);
 
     try {
       botHandler.execute(message);
@@ -97,7 +92,7 @@ public class StudyDeck {
   public void checkWord(User user, Message message) {
     String expectedWord = userTableInit.get(user.getTelegramId())
         .get(userPointers.get(user.getTelegramId()) - 1).getBack();
-    
+
     try {
       if (message.getText().equals(expectedWord)) {
         botHandler.execute(General.getRightMessage(user));

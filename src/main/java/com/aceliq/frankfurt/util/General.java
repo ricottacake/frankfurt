@@ -190,31 +190,18 @@ public class General {
 
     List<KeyboardRow> keyboard = new ArrayList<>();
 
-    KeyboardRow row1 = new KeyboardRow();
-    KeyboardRow row2 = new KeyboardRow();
+    var wrapper = new Object() {
+      KeyboardRow row = new KeyboardRow();
+    };
 
-    KeyboardButton option0 = new KeyboardButton();
-    option0.setText(options.get(0).getBack());
-
-    KeyboardButton option1 = new KeyboardButton();
-    option1.setText(options.get(1).getBack());
-
-
-    row1.add(option0);
-    row1.add(option1);
-
-    KeyboardButton option2 = new KeyboardButton();
-    option2.setText(options.get(2).getBack());
-
-    KeyboardButton option3 = new KeyboardButton();
-    option3.setText(options.get(3).getBack());
-
-    row2.add(option2);
-    row2.add(option3);
-
-    keyboard.add(row1);
-    keyboard.add(row2);
-
+    IntStream.range(0, options.size()).boxed().peek(e -> {
+      if (e % 3 == 0) {
+        keyboard.add(wrapper.row);
+        wrapper.row = new KeyboardRow();
+      }
+      wrapper.row.add(new KeyboardButton(options.get(e).getBack()));
+    }).collect(Collectors.toList());
+    keyboard.add(wrapper.row);
     keyboardMarkup.setKeyboard(keyboard);
     return keyboardMarkup;
   }
